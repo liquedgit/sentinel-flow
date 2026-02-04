@@ -12,12 +12,6 @@ kafka-topics --bootstrap-server localhost:9092 \
 
 kafka-topics --bootstrap-server localhost:9092 \
   --create --if-not-exists \
-  --topic sf-events-alert \
-  --partitions 3 \
-  --replication-factor 1 &&
-
-kafka-topics --bootstrap-server localhost:9092 \
-  --create --if-not-exists \
   --topic sf-agent-health \
   --partitions 1 \
   --replication-factor 1

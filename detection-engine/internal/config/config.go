@@ -28,7 +28,7 @@ func Load() (*Config, error) {
 	return &Config{
 		DatabaseURL:            getEnv("DATABASE_URL", ""),
 		KafkaBrokers:           getEnv("KAFKA_BROKERS", "localhost:9092"),
-		KafkaTopicRequestLogs:  getEnv("KAFKA_TOPIC_REQUEST_LOGS", "request-logs"),
+		KafkaTopicRequestLogs:  getEnv("KAFKA_TOPIC_REQUEST_LOGS", "sf-events-access"),
 		KafkaTopicScanRequests: getEnv("KAFKA_TOPIC_SCAN_REQUESTS", "scan-requests"),
 		KafkaGroupID:           getEnv("KAFKA_GROUP_ID", "detection-engine"),
 		LearningWindowDays:     getEnvInt("LEARNING_WINDOW_DAYS", 90),

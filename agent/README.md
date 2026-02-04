@@ -111,8 +111,7 @@ Topics are created automatically on startup.
 Current topics:
 
 - `sf-events-access` — raw access telemetry for detection purposes
-- `sf-events-alerts` — anomaly and detection output
-- `sf-agents-health` — Agent Health
+- `sf-agent-health` — Agent Health
 
 Verify topics:
 
@@ -169,7 +168,7 @@ To inspect raw events:
 ```bash
 docker exec -it kafka kafka-console-consumer \
   --bootstrap-server localhost:9092 \
-  --topic sf.access.events \
+  --topic sf-events-access \
   --from-beginning
 ```
 

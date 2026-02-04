@@ -37,7 +37,7 @@ func (s *Scanner) Scan(ctx context.Context, params ScanParams) error {
 	rows, err := s.pool.Query(ctx, `
 		WITH endpoint_stats AS (
 			SELECT 
-				normalized_path as endpoint,
+				normalized_path,
 				role,
 				COUNT(*) as role_count,
 				COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (PARTITION BY normalized_path) as percentage,
@@ -48,31 +48,31 @@ func (s *Scanner) Scan(ctx context.Context, params ScanParams) error {
 				AND normalized_path IS NOT NULL
 			GROUP BY normalized_path, role
 		)
-		SELECT endpoint, role, role_count, percentage, total_requests
+		SELECT normalized_path, role, role_count, percentage, total_requests
 		FROM endpoint_stats
 		WHERE total_requests >= $2
-		ORDER BY endpoint, percentage DESC
+		ORDER BY normalized_path, percentage DESC
 	`, params.LearningWindowDays, params.MinimumSampleSize)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
-	// Group by endpoint, filter roles by threshold
-	endpointRoles := make(map[string]map[string]int64) // endpoint -> role -> total_requests
-	endpointTotals := make(map[string]int64)
+	// Group by normalized path, filter roles by threshold
+	pathRoles := make(map[string]map[string]int64) // normalized_path -> role -> total_requests
+	pathTotals := make(map[string]int64)
 
 	for rows.Next() {
 		var row repository.EndpointStatsRow
-		if err := rows.Scan(&row.Endpoint, &row.Role, &row.RoleCount, &row.Percentage, &row.TotalRequests); err != nil {
+		if err := rows.Scan(&row.NormalizedPath, &row.Role, &row.RoleCount, &row.Percentage, &row.TotalRequests); err != nil {
 			return err
 		}
-		if endpointRoles[row.Endpoint] == nil {
-			endpointRoles[row.Endpoint] = make(map[string]int64)
-			endpointTotals[row.Endpoint] = row.TotalRequests
+		if pathRoles[row.NormalizedPath] == nil {
+			pathRoles[row.NormalizedPath] = make(map[string]int64)
+			pathTotals[row.NormalizedPath] = row.TotalRequests
 		}
 		if row.Percentage >= params.ViolationThresholdPct {
-			endpointRoles[row.Endpoint][row.Role] = row.RoleCount
+			pathRoles[row.NormalizedPath][row.Role] = row.RoleCount
 		}
 	}
 	if err := rows.Err(); err != nil {
@@ -81,16 +81,16 @@ func (s *Scanner) Scan(ctx context.Context, params ScanParams) error {
 
 	// Build mappings for upsert
 	var mappings []*repository.EndpointMapping
-	for endpoint, roles := range endpointRoles {
+	for normalizedPath, roles := range pathRoles {
 		allowedRoles := make([]string, 0, len(roles))
 		for r := range roles {
 			allowedRoles = append(allowedRoles, r)
 		}
 		if len(allowedRoles) > 0 {
 			mappings = append(mappings, &repository.EndpointMapping{
-				Endpoint:       endpoint,
+				NormalizedPath: normalizedPath,
 				AllowedRoles:   allowedRoles,
-				TotalRequests:  endpointTotals[endpoint],
+				TotalRequests:  pathTotals[normalizedPath],
 				LearningStatus: "active",
 			})
 		}
@@ -103,7 +103,7 @@ func (s *Scanner) Scan(ctx context.Context, params ScanParams) error {
 	// Refresh cache
 	cacheMappings := make(map[string][]string)
 	for _, m := range mappings {
-		cacheMappings[m.Endpoint] = m.AllowedRoles
+		cacheMappings[m.NormalizedPath] = m.AllowedRoles
 	}
 	s.cache.Refresh(cacheMappings)
 
