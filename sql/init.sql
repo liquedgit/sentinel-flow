@@ -1,0 +1,75 @@
+-- Request logs (high volume, time-partitioned)
+CREATE TABLE request_logs (
+    id BIGSERIAL PRIMARY KEY,
+    timestamp TIMESTAMPTZ NOT NULL,
+    method VARCHAR(10) NOT NULL,
+    endpoint VARCHAR(500) NOT NULL,
+    normalized_path VARCHAR(500),
+    user_id VARCHAR(255),
+    role VARCHAR(100),
+    source_ip INET,
+    response_status INTEGER,
+    trace_id VARCHAR(255),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_request_logs_scan ON request_logs (normalized_path, role, timestamp)
+    WHERE role IS NOT NULL AND normalized_path IS NOT NULL;
+
+-- Aggregated endpoint statistics
+CREATE TABLE endpoint_statistics (
+    id SERIAL PRIMARY KEY,
+    endpoint VARCHAR(500) NOT NULL,
+    role VARCHAR(100) NOT NULL,
+    request_count BIGINT DEFAULT 0,
+    first_seen TIMESTAMPTZ,
+    last_seen TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(endpoint, role)
+);
+
+-- Learned endpoint mappings (endpoint = normalized_path)
+CREATE TABLE endpoint_mappings (
+    id SERIAL PRIMARY KEY,
+    endpoint VARCHAR(500) UNIQUE NOT NULL,
+    allowed_roles JSONB NOT NULL DEFAULT '[]',
+    total_requests BIGINT DEFAULT 0,
+    learning_status VARCHAR(20) DEFAULT 'learning',
+    auto_generated BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Detected violations
+CREATE TABLE violations (
+    id SERIAL PRIMARY KEY,
+    timestamp TIMESTAMPTZ NOT NULL,
+    endpoint VARCHAR(500) NOT NULL,
+    user_id VARCHAR(255),
+    role VARCHAR(100),
+    expected_roles JSONB,
+    status VARCHAR(20) DEFAULT 'new',
+    resolved_by VARCHAR(255),
+    resolved_at TIMESTAMPTZ,
+    request_log_id BIGINT REFERENCES request_logs(id),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- System configuration
+CREATE TABLE configurations (
+    key VARCHAR(100) PRIMARY KEY,
+    value JSONB NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_by VARCHAR(255)
+);
+
+-- Audit log
+CREATE TABLE audit_logs (
+    id SERIAL PRIMARY KEY,
+    action VARCHAR(100) NOT NULL,
+    entity_type VARCHAR(50),
+    entity_id VARCHAR(255),
+    user_id VARCHAR(255),
+    details JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
