@@ -21,7 +21,7 @@ func NewMappingRepository(pool *pgxpool.Pool) *MappingRepository {
 // Returns map[endpoint][]allowed_roles for cache population.
 func (r *MappingRepository) LoadActiveMappings(ctx context.Context) (map[string][]string, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT endpoint, allowed_roles
+		SELECT normalized_path, allowed_roles
 		FROM endpoint_mappings
 		WHERE learning_status = 'active'
 	`)
@@ -32,16 +32,16 @@ func (r *MappingRepository) LoadActiveMappings(ctx context.Context) (map[string]
 
 	result := make(map[string][]string)
 	for rows.Next() {
-		var endpoint string
+		var normalizedPath string
 		var rolesJSON []byte
-		if err := rows.Scan(&endpoint, &rolesJSON); err != nil {
+		if err := rows.Scan(&normalizedPath, &rolesJSON); err != nil {
 			return nil, err
 		}
 		var roles []string
 		if err := json.Unmarshal(rolesJSON, &roles); err != nil {
 			return nil, err
 		}
-		result[endpoint] = roles
+		result[normalizedPath] = roles
 	}
 	return result, rows.Err()
 }
@@ -50,15 +50,15 @@ func (r *MappingRepository) LoadActiveMappings(ctx context.Context) (map[string]
 func (r *MappingRepository) UpsertMapping(ctx context.Context, m *EndpointMapping) error {
 	rolesJSON, _ := json.Marshal(m.AllowedRoles)
 	_, err := r.pool.Exec(ctx, `
-		INSERT INTO endpoint_mappings (endpoint, allowed_roles, total_requests, learning_status, auto_generated, updated_at)
+		INSERT INTO endpoint_mappings (normalized_path, allowed_roles, total_requests, learning_status, auto_generated, updated_at)
 		VALUES ($1, $2, $3, $4, TRUE, NOW())
-		ON CONFLICT (endpoint) DO UPDATE SET
+		ON CONFLICT (normalized_path) DO UPDATE SET
 			allowed_roles = EXCLUDED.allowed_roles,
 			total_requests = EXCLUDED.total_requests,
 			learning_status = EXCLUDED.learning_status,
 			updated_at = NOW()
 	`,
-		m.Endpoint, rolesJSON, m.TotalRequests, m.LearningStatus,
+		m.NormalizedPath, rolesJSON, m.TotalRequests, m.LearningStatus,
 	)
 	return err
 }
@@ -74,15 +74,15 @@ func (r *MappingRepository) UpsertMappings(ctx context.Context, mappings []*Endp
 	for _, m := range mappings {
 		rolesJSON, _ := json.Marshal(m.AllowedRoles)
 		_, err := tx.Exec(ctx, `
-			INSERT INTO endpoint_mappings (endpoint, allowed_roles, total_requests, learning_status, auto_generated, updated_at)
+			INSERT INTO endpoint_mappings (normalized_path, allowed_roles, total_requests, learning_status, auto_generated, updated_at)
 			VALUES ($1, $2, $3, $4, TRUE, NOW())
-			ON CONFLICT (endpoint) DO UPDATE SET
+			ON CONFLICT (normalized_path) DO UPDATE SET
 				allowed_roles = EXCLUDED.allowed_roles,
 				total_requests = EXCLUDED.total_requests,
 				learning_status = EXCLUDED.learning_status,
 				updated_at = NOW()
 		`,
-			m.Endpoint, rolesJSON, m.TotalRequests, m.LearningStatus,
+			m.NormalizedPath, rolesJSON, m.TotalRequests, m.LearningStatus,
 		)
 		if err != nil {
 			return err

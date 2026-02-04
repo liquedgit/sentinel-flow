@@ -12,16 +12,22 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-// RequestLogMessage is the JSON schema from the agent (Kafka).
-type RequestLogMessage struct {
-	Timestamp      string `json:"timestamp"`
-	Method         string `json:"method"`
-	Endpoint       string `json:"endpoint"`
-	UserID         string `json:"user_id"`
-	Role           string `json:"role"`
-	SourceIP       string `json:"source_ip"`
-	ResponseStatus int    `json:"response_status"`
-	TraceID        string `json:"trace_id"`
+// AccessEventMessage
+type AccessEventMessage struct {
+	TraceID     string           `json:"trace_id"`
+	Method      string           `json:"method"`
+	Path        string           `json:"path"`
+	Query       string           `json:"query,omitempty"`
+	ClientIP    string           `json:"client_ip"`
+	Status      int              `json:"status"`
+	AuthPresent bool             `json:"auth_present"`
+	UserAttr    *UserAttrMessage `json:"user_attr"`
+	Timestamp   string           `json:"timestamp"`
+}
+
+type UserAttrMessage struct {
+	UserID string `json:"user_id"`
+	Role   string `json:"role"`
 }
 
 // RequestConsumer consumes request logs from Kafka, persists them, and runs detection.
@@ -77,7 +83,7 @@ func (c *RequestConsumer) Run(ctx context.Context) error {
 }
 
 func (c *RequestConsumer) processMessage(ctx context.Context, msg kafka.Message) error {
-	var raw RequestLogMessage
+	var raw AccessEventMessage
 	if err := json.Unmarshal(msg.Value, &raw); err != nil {
 		return err
 	}
@@ -87,17 +93,23 @@ func (c *RequestConsumer) processMessage(ctx context.Context, msg kafka.Message)
 		timestamp = time.Now()
 	}
 
-	normalizedPath := normalizer.Normalize(raw.Endpoint)
+	normalizedPath := normalizer.Normalize(raw.Path)
+
+	var userID, role string
+	if raw.UserAttr != nil {
+		userID = raw.UserAttr.UserID
+		role = raw.UserAttr.Role
+	}
 
 	log := &repository.RequestLog{
 		Timestamp:      timestamp,
 		Method:         raw.Method,
-		Endpoint:       raw.Endpoint,
+		Path:           raw.Path,
 		NormalizedPath: normalizedPath,
-		UserID:         raw.UserID,
-		Role:           raw.Role,
-		SourceIP:       raw.SourceIP,
-		ResponseStatus: raw.ResponseStatus,
+		UserID:         userID,
+		Role:           role,
+		ClientIP:       raw.ClientIP,
+		Status:         raw.Status,
 		TraceID:        raw.TraceID,
 	}
 
@@ -108,12 +120,12 @@ func (c *RequestConsumer) processMessage(ctx context.Context, msg kafka.Message)
 
 	if c.detector.ShouldAlert(log) {
 		v := &repository.Violation{
-			Timestamp:     log.Timestamp,
-			Endpoint:      log.NormalizedPath,
-			UserID:        log.UserID,
-			Role:          log.Role,
-			ExpectedRoles: c.detector.ExpectedRoles(log.NormalizedPath),
-			RequestLogID:  id,
+			Timestamp:      log.Timestamp,
+			NormalizedPath: log.NormalizedPath,
+			UserID:         log.UserID,
+			Role:           log.Role,
+			ExpectedRoles:  c.detector.ExpectedRoles(log.NormalizedPath),
+			RequestLogID:   id,
 		}
 		if err := c.violationRepo.Insert(ctx, v); err != nil {
 			slog.Error("insert violation failed", "error", err)

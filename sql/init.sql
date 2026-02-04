@@ -3,12 +3,12 @@ CREATE TABLE request_logs (
     id BIGSERIAL PRIMARY KEY,
     timestamp TIMESTAMPTZ NOT NULL,
     method VARCHAR(10) NOT NULL,
-    endpoint VARCHAR(500) NOT NULL,
+    path VARCHAR(500) NOT NULL,
     normalized_path VARCHAR(500),
     user_id VARCHAR(255),
     role VARCHAR(100),
-    source_ip INET,
-    response_status INTEGER,
+    client_ip INET,
+    status INTEGER,
     trace_id VARCHAR(255),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -19,19 +19,19 @@ CREATE INDEX idx_request_logs_scan ON request_logs (normalized_path, role, times
 -- Aggregated endpoint statistics
 CREATE TABLE endpoint_statistics (
     id SERIAL PRIMARY KEY,
-    endpoint VARCHAR(500) NOT NULL,
+    normalized_path VARCHAR(500) NOT NULL,
     role VARCHAR(100) NOT NULL,
     request_count BIGINT DEFAULT 0,
     first_seen TIMESTAMPTZ,
     last_seen TIMESTAMPTZ,
     updated_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(endpoint, role)
+    UNIQUE(normalized_path, role)
 );
 
--- Learned endpoint mappings (endpoint = normalized_path)
+-- Learned endpoint mappings (normalized_path)
 CREATE TABLE endpoint_mappings (
     id SERIAL PRIMARY KEY,
-    endpoint VARCHAR(500) UNIQUE NOT NULL,
+    normalized_path VARCHAR(500) UNIQUE NOT NULL,
     allowed_roles JSONB NOT NULL DEFAULT '[]',
     total_requests BIGINT DEFAULT 0,
     learning_status VARCHAR(20) DEFAULT 'learning',
@@ -44,7 +44,7 @@ CREATE TABLE endpoint_mappings (
 CREATE TABLE violations (
     id SERIAL PRIMARY KEY,
     timestamp TIMESTAMPTZ NOT NULL,
-    endpoint VARCHAR(500) NOT NULL,
+    normalized_path VARCHAR(500) NOT NULL,
     user_id VARCHAR(255),
     role VARCHAR(100),
     expected_roles JSONB,
