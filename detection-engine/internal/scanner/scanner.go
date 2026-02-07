@@ -3,6 +3,7 @@ package scanner
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/liquedgit/sentinel-flow/detection-engine/internal/cache"
@@ -34,6 +35,14 @@ func New(pool *pgxpool.Pool, mappingRepo *repository.MappingRepository, cache *c
 
 // Scan executes the scan: queries request_logs, computes mappings, upserts to DB, refreshes cache.
 func (s *Scanner) Scan(ctx context.Context, params ScanParams) error {
+	started := time.Now()
+	slog.Info("scan started", "started_at", started.Format(time.RFC3339))
+
+	defer func() {
+		ended := time.Now()
+		slog.Info("scan ended", "ended_at", ended.Format(time.RFC3339), "duration_ms", time.Since(started).Milliseconds())
+	}()
+
 	rows, err := s.pool.Query(ctx, `
 		WITH endpoint_stats AS (
 			SELECT 
