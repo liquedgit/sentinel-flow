@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/liquedgit/sentinel-flow/detection-engine/internal/detector"
 	"github.com/liquedgit/sentinel-flow/detection-engine/internal/normalizer"
 	"github.com/liquedgit/sentinel-flow/detection-engine/internal/repository"
 	"github.com/segmentio/kafka-go"
@@ -30,20 +29,36 @@ type UserAttrMessage struct {
 	Role   string `json:"role"`
 }
 
+// RequestLogInserter inserts request logs.
+type RequestLogInserter interface {
+	Insert(ctx context.Context, log *repository.RequestLog) (int64, error)
+}
+
+// ViolationInserter inserts violations.
+type ViolationInserter interface {
+	Insert(ctx context.Context, v *repository.Violation) error
+}
+
+// ViolationDetector determines if a request should trigger a violation alert.
+type ViolationDetector interface {
+	ShouldAlert(log *repository.RequestLog) bool
+	ExpectedRoles(endpoint string) []string
+}
+
 // RequestConsumer consumes request logs from Kafka, persists them, and runs detection.
 type RequestConsumer struct {
 	reader         *kafka.Reader
-	requestLogRepo *repository.RequestLogRepository
-	violationRepo  *repository.ViolationRepository
-	detector       *detector.Detector
+	requestLogRepo RequestLogInserter
+	violationRepo  ViolationInserter
+	detector       ViolationDetector
 }
 
 // NewRequestConsumer creates a new RequestConsumer.
 func NewRequestConsumer(
 	reader *kafka.Reader,
-	requestLogRepo *repository.RequestLogRepository,
-	violationRepo *repository.ViolationRepository,
-	detector *detector.Detector,
+	requestLogRepo RequestLogInserter,
+	violationRepo ViolationInserter,
+	detector ViolationDetector,
 ) *RequestConsumer {
 	return &RequestConsumer{
 		reader:         reader,
