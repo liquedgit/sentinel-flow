@@ -68,8 +68,7 @@ func (s *Scanner) Scan(ctx context.Context, params ScanParams) error {
 	defer rows.Close()
 
 	// Group by normalized path, filter roles by threshold
-	pathRoles := make(map[string]map[string]int64) // normalized_path -> role -> total_requests
-	pathTotals := make(map[string]int64)
+	pathRoles := make(map[string]map[string]repository.EndpointStatsRow) // normalized_path -> role -> row
 
 	for rows.Next() {
 		var row repository.EndpointStatsRow
@@ -77,30 +76,26 @@ func (s *Scanner) Scan(ctx context.Context, params ScanParams) error {
 			return err
 		}
 		if pathRoles[row.NormalizedPath] == nil {
-			pathRoles[row.NormalizedPath] = make(map[string]int64)
-			pathTotals[row.NormalizedPath] = row.TotalRequests
+			pathRoles[row.NormalizedPath] = make(map[string]repository.EndpointStatsRow)
 		}
 		if row.Percentage >= params.ViolationThresholdPct {
-			pathRoles[row.NormalizedPath][row.Role] = row.RoleCount
+			pathRoles[row.NormalizedPath][row.Role] = row
 		}
 	}
 	if err := rows.Err(); err != nil {
 		return err
 	}
 
-	// Build mappings for upsert
-	var mappings []*repository.EndpointMapping
+	// Build per-role mappings for upsert
+	var mappings []*repository.EndpointRoleMapping
 	for normalizedPath, roles := range pathRoles {
-		allowedRoles := make([]string, 0, len(roles))
-		for r := range roles {
-			allowedRoles = append(allowedRoles, r)
-		}
-		if len(allowedRoles) > 0 {
-			mappings = append(mappings, &repository.EndpointMapping{
+		for _, row := range roles {
+			mappings = append(mappings, &repository.EndpointRoleMapping{
 				NormalizedPath: normalizedPath,
-				AllowedRoles:   allowedRoles,
-				TotalRequests:  pathTotals[normalizedPath],
-				LearningStatus: "active",
+				AllowedRole:    row.Role,
+				RequestCount:   row.RoleCount,
+				Percentage:     row.Percentage,
+				Status: "active",
 			})
 		}
 	}
@@ -109,13 +104,13 @@ func (s *Scanner) Scan(ctx context.Context, params ScanParams) error {
 		return err
 	}
 
-	// Refresh cache
+	// Refresh cache: aggregate per-role rows back to map[endpoint][]roles
 	cacheMappings := make(map[string][]string)
 	for _, m := range mappings {
-		cacheMappings[m.NormalizedPath] = m.AllowedRoles
+		cacheMappings[m.NormalizedPath] = append(cacheMappings[m.NormalizedPath], m.AllowedRole)
 	}
 	s.cache.Refresh(cacheMappings)
 
-	slog.Info("scan completed", "endpoints_scanned", len(mappings), "mappings_updated", len(mappings))
+	slog.Info("scan completed", "endpoints_scanned", len(pathRoles), "role_mappings_updated", len(mappings))
 	return nil
 }
