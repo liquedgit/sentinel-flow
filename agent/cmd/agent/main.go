@@ -9,33 +9,26 @@ import (
 	"syscall"
 	"time"
 
+	"sentinelflow/agent/internal/config"
 	"sentinelflow/agent/internal/proxy"
 	"sentinelflow/agent/internal/sink"
 )
 
 func main() {
-	// TODO: Change backend url to be polling config of the Agent from the Web agent settings
-	backendURL := "http://localhost:8081"
-	listenAddr := ":9000"
+	cfg := config.Load()
 
 	log.Println("[Agent] SentinelFlow Agent starting")
 
-	// Initializing Kafka Sink
-	// TODO: Please remove the hardcoded Kafka URL
-	kafkaSink := sink.NewKafkaSink(
-		[]string{"localhost:9092"},
-		"sf-events-access",
-	)
+	kafkaSink := sink.NewKafkaSink(cfg.KafkaBrokers, cfg.KafkaTopic)
 	defer kafkaSink.Close()
 
-	// Initializing Reverse Proxy
-	handler, err := proxy.NewReverseProxy(backendURL, kafkaSink)
+	handler, err := proxy.NewReverseProxy(cfg.BackendURL, cfg.MeEndpoint, kafkaSink)
 	if err != nil {
 		log.Fatalf("[Agent] Failed to create proxy: %v", err)
 	}
 
 	server := &http.Server{
-		Addr:    listenAddr,
+		Addr:    cfg.ListenAddr,
 		Handler: handler,
 	}
 
@@ -43,7 +36,7 @@ func main() {
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		log.Printf("[Agent] Listening on %s\n", listenAddr)
+		log.Printf("[Agent] Listening on %s\n", cfg.ListenAddr)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("[Agent] Server error: %v", err)
 		}

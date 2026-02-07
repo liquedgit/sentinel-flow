@@ -18,26 +18,42 @@ services:
       - zookeeper
     ports:
       - "9092:9092"
-      - "29092:29092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
 
-      # Internal (Docker network) + External (host) listeners
-      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:29092
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
 
       KAFKA_LOG_DIRS: /var/lib/kafka/data
 
-      # Added for Single node Kafka
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
 
     volumes:
       - kafka-data:/var/lib/kafka/data
+
+  agent:
+    build:
+      context: ./agent
+      dockerfile: Dockerfile
+    container_name: sentinel-agent
+    depends_on:
+      kafka:
+        condition: service_started
+    ports:
+      - "9000:9000"
+    environment:
+      BACKEND_URL: http://host.docker.internal:8081
+      LISTEN_ADDR: ":9000"
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_TOPIC: sf-events-access
+      ME_ENDPOINT: http://host.docker.internal:8081/me
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   postgres:
     image: postgres:16-alpine

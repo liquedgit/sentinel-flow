@@ -52,11 +52,13 @@ Kafka provides:
 ├── cmd/
 │   └── agent/           # Agent entrypoint (main.go)
 ├── internal/
+│   ├── config/          # Configuration from env
 │   ├── proxy/           # Reverse proxy logic
 │   ├── events/          # Event schema
-│   └── sink/            # Event sink logic
+│   ├── sink/            # Event sink logic
 │   └── identity/        # Identity fetcher
-├── docker-compose.yml   # Local Kafka + Zookeeper
+├── .env.example         # Example environment variables
+├── Dockerfile
 ├── go.mod
 └── README.md
 ```
@@ -85,12 +87,9 @@ go version
 
 ---
 
-## Start Kafka (Local Development)
+## Start Services (Docker Compose)
 
-Kafka runs **inside Docker**.
-The SentinelFlow Agent runs **on the host**.
-
-From the project root:
+From the **repository root**:
 
 ```bash
 docker compose up -d
@@ -99,8 +98,11 @@ docker compose up -d
 This starts:
 
 - Zookeeper
-- Kafka broker (exposed on `localhost:9092`)
-- A one-time init container that creates Kafka topics
+- Kafka broker (single listener at `kafka:9092`)
+- SentinelFlow Agent (port 9000)
+- Detection engine, Postgres
+
+The agent runs in Docker and connects to Kafka via `kafka:9092`. It forwards requests to the backend at `host.docker.internal:8081` (run `example_project` on the host).
 
 ---
 
@@ -125,9 +127,17 @@ docker exec -it kafka kafka-topics \
 
 ## Run the SentinelFlow Agent
 
-The agent runs on the **host machine**.
+**Recommended: via Docker Compose**
 
-From the project root (where `go.mod` exists):
+```bash
+docker compose up -d
+```
+
+The agent is included in `docker-compose.yml` and listens on port 9000.
+
+**Alternative: run on host**
+
+From the agent directory:
 
 ```bash
 go run ./cmd/agent
@@ -148,16 +158,22 @@ The agent will:
 
 ---
 
-## Kafka Connection Details
+## Configuration
 
-The agent connects to Kafka using:
+The agent reads configuration from environment variables. Copy `.env.example` to `.env`
+and adjust as needed:
 
-```
-localhost:9092
-```
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `BACKEND_URL` | `http://localhost:8081` | Backend to proxy requests to |
+| `LISTEN_ADDR` | `:9000` | Address to listen on |
+| `KAFKA_BROKERS` | `localhost:9092` | Kafka brokers (comma-separated) |
+| `KAFKA_TOPIC` | `sf-events-access` | Kafka topic for access events |
+| `ME_ENDPOINT` | `http://localhost:8081/me` | Identity endpoint for /me resolution |
 
-Kafka is configured to advertise `localhost`, allowing host-based clients
-to connect without Docker networking.
+Use `kafka:9092` when running the agent in Docker (set via docker-compose). Use
+`localhost:9092` when running on the host; note that Kafka advertises `kafka:9092`,
+so host-based agents work best when Kafka exposes a host-reachable address.
 
 ---
 
@@ -174,15 +190,15 @@ docker exec -it kafka kafka-console-consumer \
 
 ---
 
-## Stop Kafka
+## Stop Services
 
-Stop all services:
+Stop all services (from repository root):
 
 ```bash
 docker compose down
 ```
 
-Stop and remove all Kafka data:
+Stop and remove all data (including Kafka, Postgres):
 
 ```bash
 docker compose down -v

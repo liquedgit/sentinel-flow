@@ -16,18 +16,6 @@ CREATE TABLE request_logs (
 CREATE INDEX idx_request_logs_scan ON request_logs (normalized_path, role, timestamp)
     WHERE role IS NOT NULL AND normalized_path IS NOT NULL;
 
--- Aggregated endpoint statistics
-CREATE TABLE endpoint_statistics (
-    id SERIAL PRIMARY KEY,
-    normalized_path VARCHAR(500) NOT NULL,
-    role VARCHAR(100) NOT NULL,
-    request_count BIGINT DEFAULT 0,
-    first_seen TIMESTAMPTZ,
-    last_seen TIMESTAMPTZ,
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(normalized_path, role)
-);
-
 -- Learned endpoint mappings (normalized_path)
 CREATE TABLE endpoint_mappings (
     id SERIAL PRIMARY KEY,

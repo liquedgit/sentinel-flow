@@ -15,15 +15,8 @@ import (
 	"sentinelflow/agent/internal/sink"
 )
 
-// TODO: Change identity resolver to be polling config of the Agent from the Web agent settings
-var identityResolver = identity.NewMeResolver(
-	"http://localhost:3000/me",
-	"GET",
-	"user_id",
-	"role",
-)
-
-func NewReverseProxy(backendURL string, sink sink.EventSink) (http.Handler, error) {
+func NewReverseProxy(backendURL, meEndpoint string, sink sink.EventSink) (http.Handler, error) {
+	identityResolver := identity.NewMeResolver(meEndpoint, "GET", "user_id", "role")
 	target, err := url.Parse(backendURL)
 	if err != nil {
 		return nil, errors.New("invalid backend URL")
