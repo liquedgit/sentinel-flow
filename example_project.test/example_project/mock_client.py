@@ -41,7 +41,7 @@ def run_from_generator(agent_url: str) -> int:
             )
             status = "OK" if 200 <= resp.status_code < 300 else "FAIL"
             print(f"[{status}] {spec['method']} {spec['path']} -> {resp.status_code}")
-            time.sleep(random.uniform(0.1, 0.5))
+            time.sleep(random.uniform(0.01, 0.1))
     except KeyboardInterrupt:
         return 0
 

@@ -17,11 +17,7 @@ Notes for items deferred from Phase 1 implementation.
 
 ## 2. Scan Overwrites Manual Edits
 
-**Context:** For now we only plan to run scan once. Manual edits and false-positive handling may be added later.
-
-**Problem:** When scan runs, it upserts `endpoint_mappings` and would overwrite roles that were manually added (e.g., via false-positive handling). The schema has `auto_generated BOOLEAN`.
-
-**Future consideration:** When implementing manual edits, ensure scan only updates rows with `auto_generated = true` and does not overwrite manually edited mappings.
+**Resolved:** The `endpoint_role_mappings` schema uses one row per (path, role) with `auto_generated` per row. Scan upserts use `ON CONFLICT ... DO UPDATE ... WHERE endpoint_role_mappings.auto_generated = TRUE`, so manually added roles (auto_generated=false) are never overwritten.
 
 ---
 

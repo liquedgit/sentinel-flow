@@ -2,7 +2,7 @@ package repository
 
 import "time"
 
-// RequestLog represents a single request event from Kafka (agent RequestEvent schema).
+// RequestLog represents a single request event from Kafka
 type RequestLog struct {
 	Timestamp      time.Time
 	Method         string
@@ -25,12 +25,13 @@ type Violation struct {
 	RequestLogID   int64
 }
 
-// EndpointMapping represents a learned endpoint-to-roles mapping.
-type EndpointMapping struct {
+// EndpointRoleMapping represents a single path+role mapping (one row in endpoint_role_mappings).
+type EndpointRoleMapping struct {
 	NormalizedPath string
-	AllowedRoles   []string
-	TotalRequests  int64
-	LearningStatus string
+	AllowedRole    string
+	RequestCount   int64
+	Percentage     float64
+	Status string
 }
 
 // EndpointStatsRow is a row from the scan aggregation query.

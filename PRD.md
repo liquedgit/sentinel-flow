@@ -270,17 +270,20 @@ CREATE TABLE request_logs (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Learned endpoint mappings
-CREATE TABLE endpoint_mappings (
+-- Learned endpoint-role mappings (one row per path+role)
+CREATE TABLE endpoint_role_mappings (
     id SERIAL PRIMARY KEY,
-    endpoint VARCHAR(500) UNIQUE NOT NULL,
-    allowed_roles JSONB NOT NULL DEFAULT '[]',
-    total_requests BIGINT DEFAULT 0,
-    learning_status VARCHAR(20) DEFAULT 'learning',
+    normalized_path VARCHAR(500) NOT NULL,
+    allowed_role VARCHAR(100) NOT NULL,
+    request_count BIGINT DEFAULT 0,
+    percentage DECIMAL(5,2) DEFAULT 0,
+    status VARCHAR(20) DEFAULT 'active',
     auto_generated BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(normalized_path, allowed_role)
 );
+CREATE INDEX idx_endpoint_role_mappings_path ON endpoint_role_mappings(normalized_path);
 
 -- Detected violations
 CREATE TABLE violations (
@@ -414,13 +417,13 @@ CREATE TABLE audit_logs (
 1. Request arrives: GET /admin/users (role: "viewer")
 2. Agent extracts metadata, publishes to Kafka
 3. Backend consumes event, stores in request_logs
-4. Backend checks endpoint_mappings for /admin/users
-   - Found: allowed_roles = ["admin", "superadmin"]
-   - "viewer" not in allowed_roles
+4. Backend checks endpoint_role_mappings for /admin/users
+   - Found: allowed_role rows = ["admin", "superadmin"]
+   - "viewer" not in allowed roles
 5. Backend creates violation record
 6. Portal displays new violation
 7. Security engineer reviews, marks as false positive
-8. Backend adds "viewer" to allowed_roles for /admin/users
+8. Backend inserts "viewer" into endpoint_role_mappings for /admin/users (auto_generated=false)
 9. Future "viewer" requests to /admin/users are not flagged
 ```
 

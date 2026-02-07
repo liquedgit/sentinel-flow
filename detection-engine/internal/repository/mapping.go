@@ -2,12 +2,11 @@ package repository
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// MappingRepository handles persistence of endpoint mappings.
+// MappingRepository handles persistence of endpoint-role mappings.
 type MappingRepository struct {
 	pool *pgxpool.Pool
 }
@@ -17,13 +16,14 @@ func NewMappingRepository(pool *pgxpool.Pool) *MappingRepository {
 	return &MappingRepository{pool: pool}
 }
 
-// LoadActiveMappings loads all endpoint mappings with learning_status = 'active'.
-// Returns map[endpoint][]allowed_roles for cache population.
+// LoadActiveMappings loads all endpoint-role mappings with status = 'active'.
+// Aggregates rows from endpoint_role_mappings into map[endpoint][]roles for cache population.
 func (r *MappingRepository) LoadActiveMappings(ctx context.Context) (map[string][]string, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT normalized_path, allowed_roles
-		FROM endpoint_mappings
-		WHERE learning_status = 'active'
+		SELECT normalized_path, allowed_role
+		FROM endpoint_role_mappings
+		WHERE status = 'active'
+		ORDER BY normalized_path, allowed_role
 	`)
 	if err != nil {
 		return nil, err
@@ -33,38 +33,18 @@ func (r *MappingRepository) LoadActiveMappings(ctx context.Context) (map[string]
 	result := make(map[string][]string)
 	for rows.Next() {
 		var normalizedPath string
-		var rolesJSON []byte
-		if err := rows.Scan(&normalizedPath, &rolesJSON); err != nil {
+		var allowedRole string
+		if err := rows.Scan(&normalizedPath, &allowedRole); err != nil {
 			return nil, err
 		}
-		var roles []string
-		if err := json.Unmarshal(rolesJSON, &roles); err != nil {
-			return nil, err
-		}
-		result[normalizedPath] = roles
+		result[normalizedPath] = append(result[normalizedPath], allowedRole)
 	}
 	return result, rows.Err()
 }
 
-// UpsertMapping upserts an endpoint mapping.
-func (r *MappingRepository) UpsertMapping(ctx context.Context, m *EndpointMapping) error {
-	rolesJSON, _ := json.Marshal(m.AllowedRoles)
-	_, err := r.pool.Exec(ctx, `
-		INSERT INTO endpoint_mappings (normalized_path, allowed_roles, total_requests, learning_status, auto_generated, updated_at)
-		VALUES ($1, $2, $3, $4, TRUE, NOW())
-		ON CONFLICT (normalized_path) DO UPDATE SET
-			allowed_roles = EXCLUDED.allowed_roles,
-			total_requests = EXCLUDED.total_requests,
-			learning_status = EXCLUDED.learning_status,
-			updated_at = NOW()
-	`,
-		m.NormalizedPath, rolesJSON, m.TotalRequests, m.LearningStatus,
-	)
-	return err
-}
-
-// UpsertMappings upserts multiple endpoint mappings in a transaction.
-func (r *MappingRepository) UpsertMappings(ctx context.Context, mappings []*EndpointMapping) error {
+// UpsertMappings upserts multiple endpoint-role mappings in a transaction.
+// Only updates rows where auto_generated = TRUE; never overwrites manually added roles.
+func (r *MappingRepository) UpsertMappings(ctx context.Context, mappings []*EndpointRoleMapping) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -72,17 +52,18 @@ func (r *MappingRepository) UpsertMappings(ctx context.Context, mappings []*Endp
 	defer tx.Rollback(ctx)
 
 	for _, m := range mappings {
-		rolesJSON, _ := json.Marshal(m.AllowedRoles)
 		_, err := tx.Exec(ctx, `
-			INSERT INTO endpoint_mappings (normalized_path, allowed_roles, total_requests, learning_status, auto_generated, updated_at)
-			VALUES ($1, $2, $3, $4, TRUE, NOW())
-			ON CONFLICT (normalized_path) DO UPDATE SET
-				allowed_roles = EXCLUDED.allowed_roles,
-				total_requests = EXCLUDED.total_requests,
-				learning_status = EXCLUDED.learning_status,
+			INSERT INTO endpoint_role_mappings (normalized_path, allowed_role, request_count, percentage, status, auto_generated, updated_at)
+			VALUES ($1, $2, $3, $4, $5, TRUE, NOW())
+			ON CONFLICT (normalized_path, allowed_role) DO UPDATE SET
+				request_count = EXCLUDED.request_count,
+				percentage = EXCLUDED.percentage,
+				status = EXCLUDED.status,
+				auto_generated = TRUE,
 				updated_at = NOW()
+			WHERE endpoint_role_mappings.auto_generated = TRUE
 		`,
-			m.NormalizedPath, rolesJSON, m.TotalRequests, m.LearningStatus,
+			m.NormalizedPath, m.AllowedRole, m.RequestCount, m.Percentage, m.Status,
 		)
 		if err != nil {
 			return err

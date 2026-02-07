@@ -16,16 +16,18 @@ CREATE TABLE request_logs (
 CREATE INDEX idx_request_logs_scan ON request_logs (normalized_path, role, timestamp)
     WHERE role IS NOT NULL AND normalized_path IS NOT NULL;
 
--- Learned endpoint mappings (normalized_path)
-CREATE TABLE endpoint_mappings (
+-- Learned endpoint-role mappings (one row per path+role)
+CREATE TABLE endpoint_role_mappings (
     id SERIAL PRIMARY KEY,
-    normalized_path VARCHAR(500) UNIQUE NOT NULL,
-    allowed_roles JSONB NOT NULL DEFAULT '[]',
-    total_requests BIGINT DEFAULT 0,
-    learning_status VARCHAR(20) DEFAULT 'learning',
+    normalized_path VARCHAR(500) NOT NULL,
+    allowed_role VARCHAR(100) NOT NULL,
+    request_count BIGINT DEFAULT 0,
+    percentage DECIMAL(5,2) DEFAULT 0,
+    status VARCHAR(20) DEFAULT 'active',
     auto_generated BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(normalized_path, allowed_role)
 );
 
 -- Detected violations
