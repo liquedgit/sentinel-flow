@@ -1,5 +1,3 @@
-
-
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.0
@@ -24,18 +22,13 @@ services:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
 
-      # Kafka listens inside the container
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-
-      # Kafka tells clients to use localhost
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
 
       KAFKA_LOG_DIRS: /var/lib/kafka/data
 
-      # Added for Single node Kafka
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
@@ -43,7 +36,65 @@ services:
     volumes:
       - kafka-data:/var/lib/kafka/data
 
+  agent:
+    build:
+      context: ./agent
+      dockerfile: Dockerfile
+    container_name: sentinel-agent
+    depends_on:
+      kafka:
+        condition: service_started
+    ports:
+      - "9000:9000"
+    environment:
+      BACKEND_URL: http://host.docker.internal:8081
+      LISTEN_ADDR: ":9000"
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_TOPIC: sf-events-access
+      ME_ENDPOINT: http://host.docker.internal:8081/me
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: sentinel
+      POSTGRES_PASSWORD: sentinel
+      POSTGRES_DB: sentinel_flow
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel_flow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  detection-engine:
+    build:
+      context: ./detection-engine
+      dockerfile: Dockerfile
+    container_name: detection-engine
+    depends_on:
+      kafka:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://sentinel:sentinel@postgres:5432/sentinel_flow
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_TOPIC_REQUEST_LOGS: sf-events-access
+      KAFKA_TOPIC_SCAN_REQUESTS: scan-requests
+      KAFKA_GROUP_ID: detection-engine
+      LEARNING_WINDOW_DAYS: 90
+      VIOLATION_THRESHOLD_PERCENT: 5
+      MINIMUM_SAMPLE_SIZE: 100
+
 volumes:
   zookeeper-data:
   zookeeper-log:
   kafka-data:
+  postgres-data:
