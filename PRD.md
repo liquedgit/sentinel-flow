@@ -122,14 +122,7 @@ The agent publishes request metadata to Kafka with the following schema:
 **FR-2.1: Kafka Consumption**  
 The backend consumes request events from Kafka and persists them to PostgreSQL.
 
-**FR-2.2: Traffic Statistics Aggregation**  
-The backend maintains rolling statistics for each endpoint:
-- Total request count
-- Request count per role
-- Percentage distribution per role
-- First seen / last seen timestamps
-
-**FR-2.3: Learning Algorithm**  
+**FR-2.2: Learning Algorithm**  
 The system generates endpoint-to-role mappings based on traffic patterns:
 
 ```
@@ -142,7 +135,7 @@ For each endpoint:
         Mark role as "violation candidate"
 ```
 
-**FR-2.4: Configurable Parameters**
+**FR-2.3: Configurable Parameters**
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
@@ -150,13 +143,13 @@ For each endpoint:
 | `violation_threshold_percent` | 5 | Minimum percentage for a role to be considered legitimate |
 | `minimum_sample_size` | 100 | Minimum requests before generating rules for an endpoint |
 
-**FR-2.5: Real-time Violation Detection**  
+**FR-2.4: Real-time Violation Detection**  
 For each incoming request (after learning data exists):
 1. Look up learned mappings for the endpoint
 2. Check if requesting role is in allowed list
 3. If not allowed and endpoint has learned rules, create violation alert
 
-**FR-2.6: Learning Mode Behavior**  
+**FR-2.5: Learning Mode Behavior**  
 If an endpoint has not yet reached `minimum_sample_size`, no alerts are generated for that endpoint (learning mode).
 
 ### 5.3 Portal
@@ -215,7 +208,6 @@ Overview metrics:
 | Data Type | Default Retention | Configurable |
 |-----------|-------------------|--------------|
 | Raw request logs | 30 days | Yes |
-| Aggregated statistics | 12 months | Yes |
 | Alerts and violations | Indefinite | Yes |
 | Endpoint mappings | Indefinite | No |
 | Audit logs | Indefinite | No |
@@ -276,18 +268,6 @@ CREATE TABLE request_logs (
     response_status INTEGER,
     trace_id VARCHAR(255),
     created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Aggregated endpoint statistics
-CREATE TABLE endpoint_statistics (
-    id SERIAL PRIMARY KEY,
-    endpoint VARCHAR(500) NOT NULL,
-    role VARCHAR(100) NOT NULL,
-    request_count BIGINT DEFAULT 0,
-    first_seen TIMESTAMPTZ,
-    last_seen TIMESTAMPTZ,
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(endpoint, role)
 );
 
 -- Learned endpoint mappings
@@ -434,15 +414,14 @@ CREATE TABLE audit_logs (
 1. Request arrives: GET /admin/users (role: "viewer")
 2. Agent extracts metadata, publishes to Kafka
 3. Backend consumes event, stores in request_logs
-4. Backend updates endpoint_statistics for /admin/users + viewer
-5. Backend checks endpoint_mappings for /admin/users
+4. Backend checks endpoint_mappings for /admin/users
    - Found: allowed_roles = ["admin", "superadmin"]
    - "viewer" not in allowed_roles
-6. Backend creates violation record
-7. Portal displays new violation
-8. Security engineer reviews, marks as false positive
-9. Backend adds "viewer" to allowed_roles for /admin/users
-10. Future "viewer" requests to /admin/users are not flagged
+5. Backend creates violation record
+6. Portal displays new violation
+7. Security engineer reviews, marks as false positive
+8. Backend adds "viewer" to allowed_roles for /admin/users
+9. Future "viewer" requests to /admin/users are not flagged
 ```
 
 ### B. Example Docker Compose Structure
