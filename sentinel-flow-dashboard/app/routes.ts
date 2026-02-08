@@ -15,5 +15,6 @@ export default [
             route("login", BASE_PATH + "/auth/login.page.tsx"),
             route("root", BASE_PATH + "/auth/register.root.page.tsx"),
         ]),
+        route("logout", BASE_PATH + "/auth/logout.page.tsx"),
     ]),
 ] satisfies RouteConfig;

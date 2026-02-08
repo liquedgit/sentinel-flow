@@ -1,12 +1,10 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @theme {
-  --primary: #0f172a;
-  --secondary: #101922;
+
+
   --primary-hover: #137fec;
   --border-primary:#182230;
-
-  
 }
 
 .bg-primary-hover {
@@ -15,8 +13,9 @@
 
 .border-primary{
   border-color: var(--border-primary);
-  border-width: 2px;
 }
+
+
 
 /* @custom-variant dark (&:is(.dark *)); */
 
@@ -27,7 +26,7 @@
 
 html,
 body {
-  @apply bg-primary text-white;
+  @apply bg-primary text-gray-300;
 
   /* @media (prefers-color-scheme: dark) {
     color-scheme: dark;
@@ -86,22 +85,29 @@ body {
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+
+
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --foreground: white;
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
+  --primary: #0f172a;
+  --primary-foreground: #101922;
+  --secondary:#101922;
+  --secondary-foreground: white;
+  --active-primary: #137fec;
   /* --primary: oklch(0.205 0 0); */
   /* --primary-foreground: oklch(0.985 0 0); */
   /* --secondary: oklch(0.97 0 0); */
   /* --secondary-foreground: oklch(0.205 0 0); */
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --accent: #233648;
+  --accent-foreground: white;
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
