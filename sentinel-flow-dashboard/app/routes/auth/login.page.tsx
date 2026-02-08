@@ -11,23 +11,25 @@ import {
 } from "~/components/ui/card";
 import { Shield } from "lucide-react";
 import { Link, data, redirect, useFetcher } from "react-router";
-import type { Route } from "./+types/login";
+import type { Route } from "./+types/login.page";
 import { login } from "~/.server/controller/auth.controller";
-import { commitSession, getSession } from "~/.server/libs/sessions";
+import {
+  commitSession,
+  commitSessionForAuthenticatedUser,
+  getSessionFromRequest,
+} from "~/.server/libs/sessions";
 
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const email = String(formData.get("email"));
   const password = String(formData.get("password"));
-  const session = await getSession(request.headers.get("Cookie"));
+  const session = await getSessionFromRequest(request);
 
   const res = await login(email, password);
   if (res && "id" in res) {
-    console.log(res);
-    session.set("userId", res.id);
     return redirect("/", {
       headers: {
-        "Set-Cookie": await commitSession(session),
+        "Set-Cookie": await commitSessionForAuthenticatedUser(request, res.id),
       },
     });
   }
@@ -40,7 +42,7 @@ export async function action({ request }: Route.ActionArgs) {
 export default function SignInCard() {
   const fetcher = useFetcher();
   return (
-    <Card className="border-slate-800 bg-background-dark backdrop-blur-xl">
+    <Card className="border-slate-800 bg-secondary backdrop-blur-xl">
       <CardHeader className="space-y-4 text-center pb-8">
         <div className="mx-auto w-12 h-12 rounded-lg bg-blue-600/20 border border-blue-600/30 flex items-center justify-center">
           <Shield className="w-6 h-6 text-blue-500" />

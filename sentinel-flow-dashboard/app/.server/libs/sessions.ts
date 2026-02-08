@@ -2,6 +2,7 @@ import { createCookieSessionStorage } from "react-router";
 
 type SessionData = {
     userId: string;
+    expiresAt: Date;
 };
 
 type SessionFlashData = {
@@ -14,7 +15,7 @@ const { getSession, commitSession, destroySession } =
             cookie: {
                 name: "__sfsession",
                 httpOnly: true,
-                maxAge: 60 * 60 * 24 * 7, // 7 days
+                maxAge: 60 * 60 * 24 * 5, // 5 days
                 path: "/",
                 sameSite: "lax",
                 secrets: [process.env.SESSION_SECRET as string],
@@ -23,4 +24,20 @@ const { getSession, commitSession, destroySession } =
         },
     );
 
-export { getSession, commitSession, destroySession };
+async function getSessionInternal(request: Request) {
+    const session = await getSession(request.headers.get("Cookie"));
+    return session;
+}
+
+export async function getSessionFromRequest(request: Request) {
+    const session = await getSessionInternal(request);
+    return session;
+}
+
+export async function commitSessionForAuthenticatedUser(request: Request, userId: string) {
+    const session = await getSessionInternal(request);
+    session.set("userId", userId);
+    return await commitSession(session);
+}
+
+export { commitSession, destroySession };

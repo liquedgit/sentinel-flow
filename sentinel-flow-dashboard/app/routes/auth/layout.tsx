@@ -1,11 +1,13 @@
-import React from "react";
 import { Outlet, redirect } from "react-router";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/layout";
-import { getSession } from "~/.server/libs/sessions";
+import { getSessionFromRequest } from "~/.server/libs/sessions";
+import { guestMidleware } from "~/.server/middlewares/auth.middleware";
+
+export const middleware: Route.MiddlewareFunction[] = [guestMidleware];
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const session = await getSession(request.headers.get("Cookie"));
+  const session = await getSessionFromRequest(request);
   if (session.has("userId")) {
     return redirect("/");
   }
@@ -17,7 +19,7 @@ export default function AuthLayout() {
     <div
       className={cn(
         "min-h-screen w-full bg-linear-to-br from-slate-950 via-slate-900 to-slate-950",
-        "flex items-center justify-center p-4 relative overflow-hidden"
+        "flex items-center justify-center p-4 relative overflow-hidden",
       )}
     >
       {/* Background effects */}

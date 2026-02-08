@@ -1,21 +1,24 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @theme {
-  --color-primary: #137fec;
-  --color-primary-hover: #106ac5;
-  --color-background-light: #f6f7f8;
-  --color-background-dark: #101922;
-  --color-surface-dark: #161e27;
-  --color-border-dark: #2a3645;
-  --color-input-dark: #1c2127;
-  --color-input-border: #3b4754;
-  --color-text-muted: #586472;
-  --color-text-secondary: #9dabb9;
-  --color-footer-dark: #131b24;
-  --color-border-back: #2a3645;
+  --primary: #0f172a;
+  --secondary: #101922;
+  --primary-hover: #137fec;
+  --border-primary:#182230;
+
+  
 }
 
-@custom-variant dark (&:is(.dark *));
+.bg-primary-hover {
+  background-color: var(--primary-hover);
+}
+
+.border-primary{
+  border-color: var(--border-primary);
+  border-width: 2px;
+}
+
+/* @custom-variant dark (&:is(.dark *)); */
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
@@ -24,11 +27,22 @@
 
 html,
 body {
-  @apply bg-white dark:bg-gray-950;
+  @apply bg-primary text-white;
 
-  @media (prefers-color-scheme: dark) {
+  /* @media (prefers-color-scheme: dark) {
     color-scheme: dark;
-  }
+  } */
+}
+
+.app-sidebar [data-sidebar="sidebar"]{
+  background-color: var(--color-secondary);
+}
+
+[role="dialog"][data-slot="sidebar"]{
+  background-color: var(--color-secondary);
+  border-color: var(--border-primary);
+  border-width: 2px;
+  color: white;
 }
 
 @theme inline {
@@ -80,10 +94,10 @@ body {
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
+  /* --primary: oklch(0.205 0 0); */
+  /* --primary-foreground: oklch(0.985 0 0); */
+  /* --secondary: oklch(0.97 0 0); */
+  /* --secondary-foreground: oklch(0.205 0 0); */
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
   --accent: oklch(0.97 0 0);

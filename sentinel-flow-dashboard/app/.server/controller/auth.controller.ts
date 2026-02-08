@@ -1,8 +1,8 @@
 import { data } from "react-router";
-import type { BaseResponseDtoWithData, BaseResponseDtoWithErrors } from "../dto/base.dto";
-import { Role } from "../libs/enum";
+import type { BaseResponseDtoWithData, BaseResponseDtoWithErrors } from "../types/dto/base.dto";
 import { loginService, registerUserService } from "../services/auth.service";
 import { createOrganizationService, getCountOrganizationsService } from "../services/organization.service";
+import { Role } from "../types/role";
 
 export async function registerRoot(organizationName: string, email: string, password: string, confirmPassword: string) {
     const errors = [];

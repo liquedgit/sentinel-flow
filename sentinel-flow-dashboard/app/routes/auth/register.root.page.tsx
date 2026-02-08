@@ -9,14 +9,12 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
-import type { Route } from "./+types/register-root";
 import { data, useFetcher, useNavigate } from "react-router";
 import { registerRoot } from "~/.server/controller/auth.controller";
-import type { BaseResponseDtoWithErrors } from "~/.server/dto/base.dto";
+import type { BaseResponseDtoWithErrors } from "~/.server/types/dto/base.dto";
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { redirect } from "react-router";
-import { getSession } from "~/.server/libs/sessions";
+import type { Route } from "./+types/register.root.page";
 
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
@@ -32,14 +30,14 @@ export async function action({ request }: Route.ActionArgs) {
         status: 400,
         success: false,
       } as BaseResponseDtoWithErrors,
-      { status: 400 }
+      { status: 400 },
     );
   }
   const res = await registerRoot(
     orgName as string,
     email as string,
     password as string,
-    confirmPassword as string
+    confirmPassword as string,
   );
 
   return res;
@@ -52,14 +50,14 @@ export default function RegisterRoot() {
   useEffect(() => {
     if (fetcher.data?.success) {
       toast.success(
-        "Administrator account created successfully, Please login to continue"
+        "Administrator account created successfully, Please login to continue",
       );
       navigate("/auth/login");
     }
   }, [fetcher.data]);
 
   return (
-    <Card className="border-slate-800  bg-background-dark backdrop-blur-xl">
+    <Card className="border-slate-800  bg-secondary backdrop-blur-xl">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-bold text-white">
           <p>Sentinel Flow</p>

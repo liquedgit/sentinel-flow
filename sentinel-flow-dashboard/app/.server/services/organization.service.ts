@@ -12,3 +12,11 @@ export async function createOrganizationService(organizationName: string): Promi
 export async function getCountOrganizationsService(): Promise<number> {
     return await prisma.organization.count();
 }
+
+export async function getOrganizationService(): Promise<Organization | null> {
+    return await prisma.organization.findFirst({
+        orderBy: {
+            createdAt: "desc",
+        },
+    });
+}

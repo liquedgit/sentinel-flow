@@ -1,5 +1,5 @@
-import type { BaseResponseDtoWithErrors } from "../dto/base.dto";
-import { Role } from "../libs/enum";
+import type { BaseResponseDtoWithErrors } from "../types/dto/base.dto";
+import { Role } from "../types/role";
 import bcrypt from "bcrypt"
 import { createUserService, getUserByEmailService } from "./user.service";
 import type { User } from "@/generated/prisma/client";
