@@ -7,6 +7,13 @@ import {
   Settings,
   Bot,
   Users,
+  ChevronsUpDown,
+  Sparkles,
+  BadgeCheck,
+  CreditCard,
+  Bell,
+  LogOut,
+  User,
 } from "lucide-react";
 import {
   Sidebar,
@@ -16,52 +23,88 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from "./ui/sidebar";
 import { cn } from "~/lib/utils";
-import { Link, useLocation } from "react-router";
+import { Form, Link, useFetcher, useLocation } from "react-router";
+import type { SidebarItem } from "~/routes/dashboard/layout";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
-interface SidebarItem {
-  label: string;
-  icon: LucideIcon;
-  href: string;
+function NavUser({
+  user,
+}: {
+  user: {
+    name: string;
+    email: string;
+    avatar: string;
+  };
+}) {
+  const { isMobile } = useSidebar();
+  const fetcher = useFetcher();
+
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SidebarMenuButton
+              size="lg"
+              className="hover:bg-slate-100/10 hover:text-slate-100 data-[state=open]:bg-blue-500 data-[state=open]:text-white"
+            >
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-medium">{user.email}</span>
+              </div>
+              <ChevronsUpDown className="ml-auto size-4" />
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg bg-slate-100/10 text-slate-100 border-2 border-primary"
+            side={isMobile ? "bottom" : "right"}
+            align="end"
+            sideOffset={4}
+          >
+            <DropdownMenuItem className="cursor-pointer">
+              <User />
+              Account
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={() =>
+                fetcher.submit(null, {
+                  method: "POST",
+                  action: "/auth/logout",
+                })
+              }
+            >
+              <LogOut />
+              Log out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  );
 }
 
-const sidebarItems: SidebarItem[] = [
-  {
-    label: "Dashboard",
-    icon: LayoutDashboard,
-    href: "/",
-  },
-  {
-    label: "Authorization Graph Explorer",
-    icon: Network,
-    href: "/authorization-graph-explorer",
-  },
-  {
-    label: "Findings",
-    icon: Bug,
-    href: "/findings",
-  },
-  {
-    label: "Agents",
-    icon: Bot,
-    href: "/agents",
-  },
-  {
-    label: "Users management",
-    icon: Users,
-    href: "/users-management",
-  },
-  {
-    label: "Settings",
-    icon: Settings,
-    href: "/settings",
-  },
-];
-
-export function AppSidebar({ organization }: { organization: string }) {
+export function AppSidebar({
+  organization,
+  sidebarItems,
+}: {
+  organization: string;
+  sidebarItems: SidebarItem[];
+}) {
   const { state } = useSidebar();
   const pathname = useLocation().pathname;
 
@@ -105,7 +148,9 @@ export function AppSidebar({ organization }: { organization: string }) {
         </SidebarHeader>
         <SidebarContent className="text-gray-300">
           <SidebarGroup>
-            <SidebarGroupLabel>Analytics</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-gray-300">
+              Analytics
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               {sidebarItems.map((item) => (
                 <SidebarMenuItem key={item.href} className="w-full">
@@ -132,6 +177,15 @@ export function AppSidebar({ organization }: { organization: string }) {
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
+        <SidebarFooter>
+          <NavUser
+            user={{
+              name: "John Doe",
+              email: "john.doe@example.com",
+              avatar: "https://github.com/shadcn.png",
+            }}
+          />
+        </SidebarFooter>
       </div>
     </Sidebar>
   );
