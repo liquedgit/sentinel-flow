@@ -1,20 +1,4 @@
-import {
-  LayoutDashboard,
-  Shield,
-  type LucideIcon,
-  Network,
-  Bug,
-  Settings,
-  Bot,
-  Users,
-  ChevronsUpDown,
-  Sparkles,
-  BadgeCheck,
-  CreditCard,
-  Bell,
-  LogOut,
-  User,
-} from "lucide-react";
+import { Shield, ChevronsUpDown, LogOut, User } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -29,18 +13,14 @@ import {
   useSidebar,
 } from "./ui/sidebar";
 import { cn } from "~/lib/utils";
-import { Form, Link, useFetcher, useLocation } from "react-router";
-import type { SidebarItem } from "~/routes/dashboard/layout";
+import { Link, useFetcher, useLocation } from "react-router";
+import type { SidebarItem } from "~/routes/layout";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 function NavUser({
   user,
@@ -61,7 +41,7 @@ function NavUser({
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="hover:bg-slate-100/10 hover:text-slate-100 data-[state=open]:bg-blue-500 data-[state=open]:text-white"
+              className="hover:bg-active-primary-foreground hover:text-slate-100 data-[state=open]:bg-active-primary-foreground data-[state=open]:text-white"
             >
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.email}</span>
@@ -70,17 +50,17 @@ function NavUser({
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg bg-slate-100/10 text-slate-100 border-2 border-primary"
+            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg bg-primary-foreground text-white border-2 border-primary"
             side={isMobile ? "bottom" : "right"}
             align="end"
             sideOffset={4}
           >
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem className="cursor-pointer hover:bg-active-primary-foreground hover:text-white">
               <User />
               Account
             </DropdownMenuItem>
             <DropdownMenuItem
-              className="cursor-pointer"
+              className="cursor-pointer hover:bg-active-primary-foreground hover:text-white"
               onClick={() =>
                 fetcher.submit(null, {
                   method: "POST",
@@ -88,8 +68,8 @@ function NavUser({
                 })
               }
             >
-              <LogOut />
-              Log out
+              <LogOut stroke="red" />
+              <span className="text-red-500">Log out</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -153,7 +133,10 @@ export function AppSidebar({
             </SidebarGroupLabel>
             <SidebarGroupContent>
               {sidebarItems.map((item) => (
-                <SidebarMenuItem key={item.href} className="w-full">
+                <SidebarMenuItem
+                  key={item.href}
+                  className="w-full hover:bg-active-primary-foreground hover:rounded-md hover:text-white"
+                >
                   <Link
                     to={item.href}
                     className={cn(

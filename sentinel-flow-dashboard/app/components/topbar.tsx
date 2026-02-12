@@ -1,6 +1,6 @@
 import { useLocation } from "react-router";
 import { SidebarTrigger } from "./ui/sidebar";
-import type { SidebarItem } from "~/routes/dashboard/layout";
+import type { SidebarItem } from "~/routes/layout";
 import { useEffect, useMemo, useState } from "react";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "./ui/breadcrumb";
 import { Bell } from "lucide-react";

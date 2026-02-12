@@ -1,5 +1,5 @@
 import { Outlet, data, useLoaderData } from "react-router";
-import type { Route } from "./+types/dashboard.page";
+import type { Route } from "./dashboard/+types/dashboard.page";
 import { SidebarProvider, SidebarTrigger } from "~/components/ui/sidebar";
 import { AppSidebar } from "~/components/appsidebar";
 import { getOrganizationService } from "~/.server/services/organization.service";
@@ -14,6 +14,7 @@ import {
   Users,
   Settings,
 } from "lucide-react";
+import { Sheet } from "~/components/ui/sheet";
 
 export const middleware: Route.MiddlewareFunction[] = [authMiddleware];
 
@@ -69,7 +70,6 @@ export default function AuthLayout() {
         organization={organization ?? ""}
         sidebarItems={sidebarItems}
       />
-
       <main className="flex flex-col flex-1 min-w-0">
         <TopBar sidebarItems={sidebarItems} />
         <Outlet />

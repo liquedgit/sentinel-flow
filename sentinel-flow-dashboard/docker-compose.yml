@@ -6,9 +6,9 @@ services:
     container_name: sentinel-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: "sfusername"
-      POSTGRES_PASSWORD: "sfpassword123"
-      POSTGRES_DB: "sentinelflow"
+      POSTGRES_USER: "sentinel"
+      POSTGRES_PASSWORD: "sentinel"
+      POSTGRES_DB: "sentinel_flow"
     volumes:
       - db_data:/var/lib/postgresql/data
     ports:

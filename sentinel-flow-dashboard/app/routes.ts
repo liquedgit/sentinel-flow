@@ -6,9 +6,11 @@ export default [
     // index (/) route
 
     // AUTHENTICATED ONLY ROUTES
-    layout(BASE_PATH + "/dashboard/layout.tsx", [
+    layout(BASE_PATH + "/layout.tsx", [
         index(BASE_PATH + "/dashboard/dashboard.page.tsx"),
+        route("findings", BASE_PATH + "/findings/findings.page.tsx"),
     ]),
+    route("test", BASE_PATH + "/test.tsx"),
     // auth prefixed routes under /auth
     ...prefix("auth", [
         layout(BASE_PATH + "/auth/layout.tsx", [

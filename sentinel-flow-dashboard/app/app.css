@@ -54,6 +54,9 @@ body {
   --radius-4xl: calc(var(--radius) + 16px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-active-primary: var(--active-primary);
+  --color-active-primary-foreground: var(--active-primary-foreground);
+  --color-light-gray: var(--light-gray);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -100,6 +103,8 @@ body {
   --secondary:#101922;
   --secondary-foreground: white;
   --active-primary: #137fec;
+  --active-primary-foreground: #222e3a;
+  --light-gray: #80848a;
   /* --primary: oklch(0.205 0 0); */
   /* --primary-foreground: oklch(0.985 0 0); */
   /* --secondary: oklch(0.97 0 0); */
