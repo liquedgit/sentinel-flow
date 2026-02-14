@@ -64,6 +64,7 @@ export default function FindingsPage() {
         <Table className="bg-primary-foreground text-white">
           <TableHeader>
             <TableRow className="hover:bg-active-primary-foreground">
+              <TableHead>ID</TableHead>
               <TableHead>Path</TableHead>
               <TableHead>User ID</TableHead>
               <TableHead>Role</TableHead>
@@ -83,6 +84,7 @@ export default function FindingsPage() {
                   setSelected(violation);
                 }}
               >
+                <TableCell>{violation.id}</TableCell>
                 <TableCell>{violation.normalizedPath}</TableCell>
                 <TableCell>{violation.userId}</TableCell>
                 <TableCell>{violation.role}</TableCell>
@@ -96,7 +98,11 @@ export default function FindingsPage() {
         </Table>
       </div>
 
-      <DetailFindingsSheet selected={selected} setSelected={setSelected} />
+      <DetailFindingsSheet
+        selected={selected}
+        setSelected={setSelected}
+        deepCodeAnalysisResponse={"Hallo"}
+      />
     </div>
   );
 }
