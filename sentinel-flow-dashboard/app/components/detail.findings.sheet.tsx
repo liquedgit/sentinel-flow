@@ -10,6 +10,8 @@ import {
 import { Label } from "./ui/label";
 import { Button } from "./ui/button";
 import { Sparkles } from "lucide-react";
+import RequestMethod from "./requestmethod";
+import StatusCode from "./statuscode";
 
 export type ViolationWithRequestLog = Prisma.ViolationGetPayload<{
   include: { requestLog: true };
@@ -48,29 +50,30 @@ export default function DetailFindingsSheet({
             <div className="text-sm">Triggering Events</div>
             <div className="flex w-full">
               <div className="text-sm space-y-2 w-1/2">
-                <div>
+                <div className="space-y-1">
                   <Label>Timestamp</Label>
                   <span>{selected?.timestamp.toISOString()}</span>
                 </div>
-                <div>
+                <div className="space-y-1">
                   <Label>Normalized Path</Label>
-                  <span>
-                    {selected?.requestLog?.method} {selected?.normalizedPath}
-                  </span>
+                  <div>
+                    <RequestMethod method={selected?.requestLog?.method} />{" "}
+                    {selected?.normalizedPath}
+                  </div>
                 </div>
-                <div>
+                <div className="space-y-1">
                   <Label>Trace ID</Label>
                   <span>{selected?.requestLog?.traceId}</span>
                 </div>
               </div>
               <div className="text-sm space-y-2 w-1/2">
-                <div>
+                <div className="space-y-1">
                   <Label>Client IP</Label>
                   <span>{selected?.requestLog?.clientIp}</span>
                 </div>
-                <div>
+                <div className="space-y-1">
                   <Label>Status</Label>
-                  <span>{selected?.requestLog?.status}</span>
+                  <StatusCode status={selected?.requestLog?.status} />
                 </div>
               </div>
             </div>

@@ -35,7 +35,7 @@ export async function loader() {
       role: "test",
       status: 200,
       createdAt: new Date(),
-      method: "GET",
+      method: "POST",
       path: "/api/v1/admin/user-management/users",
       clientIp: "127.0.0.1",
       traceId: "1234567890",
