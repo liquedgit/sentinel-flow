@@ -53,11 +53,13 @@ export default function FindingsPage() {
   return (
     <div className="p-4 space-y-4">
       <div className="flex">
-        <Input
-          type="text"
-          placeholder="Search findings"
-          className="bg-primary-foreground text-white border-primary"
-        />
+        <div>
+          <Input
+            type="text"
+            placeholder="Search findings"
+            className="bg-primary-foreground text-white border-primary"
+          />
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-md border border-primary">
