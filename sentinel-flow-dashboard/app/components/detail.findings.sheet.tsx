@@ -96,17 +96,20 @@ export default function DetailFindingsSheet({
             </div>
 
             {/* Deep Code Analysis Response */}
-            <div className="px-4">
-              <div className="bg-light-blue border border-active-primary p-3 rounded-md">
-                <div className="text-sm font-medium flex space-x-2 text-active-primary">
-                  <Sparkles className="size-4" />
-                  <div>Deep Code Analysis Response</div>
-                </div>
-                <div className="text-sm text-gray-200">
-                  {deepCodeAnalysisResponse}
+
+            {deepCodeAnalysisResponse !== null && (
+              <div className="px-4">
+                <div className="bg-light-blue border border-active-primary p-3 rounded-md">
+                  <div className="text-sm font-medium flex space-x-2 text-active-primary">
+                    <Sparkles className="size-4" />
+                    <div>Deep Code Analysis Response</div>
+                  </div>
+                  <div className="text-sm text-gray-200">
+                    {deepCodeAnalysisResponse}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             <div className="space-y-2 px-4">
               {/* Title */}

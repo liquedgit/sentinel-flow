@@ -10,9 +10,9 @@ export async function getViolations(): Promise<ViolationWithRequestLog[]> {
         orderBy: {
             createdAt: "desc",
         },
-
         include: {
             requestLog: true
         },
     });
 }
+

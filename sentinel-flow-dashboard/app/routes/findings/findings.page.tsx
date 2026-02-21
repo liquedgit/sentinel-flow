@@ -82,7 +82,6 @@ export default function FindingsPage() {
                 key={violation.id}
                 className="hover:bg-active-primary-foreground cursor-pointer"
                 onClick={() => {
-                  console.log(violation);
                   setSelected(violation);
                 }}
               >
@@ -103,7 +102,7 @@ export default function FindingsPage() {
       <DetailFindingsSheet
         selected={selected}
         setSelected={setSelected}
-        deepCodeAnalysisResponse={"Hallo"}
+        deepCodeAnalysisResponse={null}
       />
     </div>
   );

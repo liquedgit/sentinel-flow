@@ -1,6 +1,6 @@
 import { Outlet, data, useLoaderData } from "react-router";
 import type { Route } from "./dashboard/+types/dashboard.page";
-import { SidebarProvider, SidebarTrigger } from "~/components/ui/sidebar";
+import { SidebarProvider } from "~/components/ui/sidebar";
 import { AppSidebar } from "~/components/appsidebar";
 import { getOrganizationService } from "~/.server/services/organization.service";
 import { authMiddleware } from "~/.server/middlewares/auth.middleware";
@@ -13,14 +13,25 @@ import {
   Bot,
   Users,
   Settings,
+  BookText,
 } from "lucide-react";
-import { Sheet } from "~/components/ui/sheet";
+import { getEndpointRoleMappingsService } from "~/.server/services/endpoint.role.mappings.service";
 
 export const middleware: Route.MiddlewareFunction[] = [authMiddleware];
 
 export async function loader() {
-  const organization = await getOrganizationService();
-  return data(organization?.organizationName, { status: 200 });
+  const [organization, endpointMappings] = await Promise.all([
+    getOrganizationService(),
+    getEndpointRoleMappingsService(), // some other server call
+  ]);
+
+  return data(
+    {
+      organizationName: organization?.organizationName,
+      endpointMappingsCount: endpointMappings.length,
+    },
+    { status: 200 },
+  );
 }
 
 export interface SidebarItem {
@@ -39,6 +50,11 @@ const sidebarItems: SidebarItem[] = [
     label: "Authorization Graph Explorer",
     icon: Network,
     href: "/authorization-graph-explorer",
+  },
+  {
+    label: "Learn mappings",
+    icon: BookText,
+    href: "/learn-mappping",
   },
   {
     label: "Findings",
@@ -63,15 +79,18 @@ const sidebarItems: SidebarItem[] = [
 ];
 
 export default function AuthLayout() {
-  const organization = useLoaderData<typeof loader>();
+  const data = useLoaderData<typeof loader>();
   return (
     <SidebarProvider>
       <AppSidebar
-        organization={organization ?? ""}
+        organization={data.organizationName ?? ""}
         sidebarItems={sidebarItems}
       />
       <main className="flex flex-col flex-1 min-w-0">
-        <TopBar sidebarItems={sidebarItems} />
+        <TopBar
+          sidebarItems={sidebarItems}
+          endpointMappingsCount={data.endpointMappingsCount}
+        />
         <Outlet />
       </main>
     </SidebarProvider>
