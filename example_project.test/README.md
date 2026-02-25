@@ -39,6 +39,19 @@ for spec in generate_requests_simple():
     print(spec)  # {"method": "GET", "path": "/", "headers": {...}}
 ```
 
+## Docker (no local Python required)
+
+```bash
+# Run mock client with generator (default: agent at host.docker.internal:9000)
+docker compose -f example-project-test.yml run --rm example-project-test
+
+# Single request
+docker compose -f example-project-test.yml run --rm example-project-test --path /api/ping --user alice
+
+# With full SentinelFlow stack (agent in Docker)
+AGENT_URL=http://agent:9000 docker compose -f docker-compose.yml -f example-project-test.yml run --rm example-project-test
+```
+
 ## Prerequisites
 
 - Agent running on `:9000`

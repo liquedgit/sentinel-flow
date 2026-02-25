@@ -1,0 +1,14 @@
+services:
+  example-project:
+    build:
+      context: ./example_project
+      dockerfile: Dockerfile
+    container_name: example-project
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8081/api/ping')\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
