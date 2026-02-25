@@ -1,0 +1,11 @@
+services:
+  example-project-test:
+    build:
+      context: ./example_project.test
+      dockerfile: Dockerfile
+    container_name: example-project-test
+    environment:
+      AGENT_URL: ${AGENT_URL:-http://host.docker.internal:9000}
+    command: ["--from-generator"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
