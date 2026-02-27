@@ -10,6 +10,8 @@ services:
     volumes:
       - zookeeper-data:/var/lib/zookeeper/data
       - zookeeper-log:/var/lib/zookeeper/log
+    networks:
+      - sentinel-flow
 
   kafka:
     image: confluentinc/cp-kafka:7.6.0
@@ -35,6 +37,8 @@ services:
 
     volumes:
       - kafka-data:/var/lib/kafka/data
+    networks:
+      - sentinel-flow
 
   agent:
     build:
@@ -54,6 +58,8 @@ services:
       ME_ENDPOINT: http://host.docker.internal:8081/me
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    networks:
+      - sentinel-flow
 
   postgres:
     image: postgres:16-alpine
@@ -72,6 +78,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - sentinel-flow
 
   detection-engine:
     build:
@@ -92,13 +100,15 @@ services:
       LEARNING_WINDOW_DAYS: 90
       VIOLATION_THRESHOLD_PERCENT: 5
       MINIMUM_SAMPLE_SIZE: 100
+    networks:
+      - sentinel-flow
   dashboard:
     build:
       context: ./sentinel-flow-dashboard
       dockerfile: Dockerfile
     container_name: sentinel-flow-dashboard
     environment:
-      - DATABASE_URL=postgresql://sentinel:sentinel@localhost:5432/sentinel_flow
+      - DATABASE_URL=postgresql://sentinel:sentinel@postgres:5432/sentinel_flow
       - SESSION_SECRET=s3nt1n3lfl0ws3cr3t!
     depends_on:
       kafka:
@@ -107,8 +117,11 @@ services:
         condition: service_healthy
     networks:
       - web
+      - sentinel-flow
 
 networks:
+  sentinel-flow:
+    name: sentinel-flow-net
   web:
     external: true
 
