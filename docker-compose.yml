@@ -97,8 +97,9 @@ services:
       context: ./sentinel-flow-dashboard
       dockerfile: Dockerfile
     container_name: sentinel-flow-dashboard
-    env_file:
-      - ./sentinel-flow-dashboard/.env
+    environment:
+      - DATABASE_URL=postgresql://sentinel:sentinel@localhost:5432/sentinel_flow
+      - SESSION_SECRET=s3nt1n3lfl0ws3cr3t!
     depends_on:
       kafka:
         condition: service_started
