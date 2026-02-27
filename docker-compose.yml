@@ -104,8 +104,12 @@ services:
         condition: service_started
       postgres:
         condition: service_healthy
-    ports:
-      - "3000:3000"
+    networks:
+      - web
+
+networks:
+  web:
+    external: true
 
 volumes:
   zookeeper-data:
