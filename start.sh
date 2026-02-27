@@ -23,6 +23,13 @@ echo "Initializing Kafka topics..."
 sh ./initialize-kafka-topics.sh
 
 # ─────────────────────────────────────────
+# Step 4: Start Example Project
+# ─────────────────────────────────────────
+echo "Starting Example Project..."
+docker compose up -d example-project -d
+
+
+# ─────────────────────────────────────────
 # Step 3: Start agent and detection engine
 # ─────────────────────────────────────────
 echo "Starting agent and detection-engine..."
