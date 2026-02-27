@@ -1,8 +1,8 @@
 import { Outlet, redirect } from "react-router";
-import { cn } from "~/lib/utils";
 import type { Route } from "./+types/layout";
 import { getSessionFromRequest } from "~/.server/libs/sessions";
 import { guestMidleware } from "~/.server/middlewares/auth.middleware";
+import { cn } from "~/lib/utils";
 
 export const middleware: Route.MiddlewareFunction[] = [guestMidleware];
 
