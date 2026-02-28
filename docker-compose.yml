@@ -45,17 +45,19 @@ services:
       context: ./agent
       dockerfile: Dockerfile
     container_name: sentinel-agent
+    ports:
+      - 9000:9000
     depends_on:
       kafka:
         condition: service_started
     environment:
-      BACKEND_URL: http://example-project:8081
+      BACKEND_URL: http://host.docker.internal:8081
       LISTEN_ADDR: ":9000"
       KAFKA_BROKERS: kafka:9092
       KAFKA_TOPIC: sf-events-access
-      ME_ENDPOINT: http://example-project:8081/me
-#    extra_hosts:
-#      - "host.docker.internal:host-gateway"
+      ME_ENDPOINT: http://host.docker.internal:8081/me
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - sentinel-flow
       - web
@@ -139,14 +141,6 @@ services:
         condition: service_healthy
     networks:
       - web
-      - sentinel-flow
-
-  example-project:
-    build:
-      context: ./example_project
-      dockerfile: Dockerfile
-    container_name: example-project
-    networks:
       - sentinel-flow
 
 networks:
