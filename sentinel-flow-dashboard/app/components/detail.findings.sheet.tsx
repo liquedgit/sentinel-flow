@@ -14,6 +14,7 @@ import RequestMethod from "./requestmethod";
 import StatusCode from "./statuscode";
 import InlineCode from "./inlinecode";
 import { ScrollArea } from "./ui/scroll-area";
+import { ViolationType } from "~/lib/violation";
 
 export type ViolationWithRequestLog = Prisma.ViolationGetPayload<{
   include: { requestLog: true };
