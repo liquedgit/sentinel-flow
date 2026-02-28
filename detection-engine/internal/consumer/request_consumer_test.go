@@ -182,6 +182,7 @@ func TestRequestConsumer_processMessage_invalid_timestamp_uses_now(t *testing.T)
 	event := AccessEventMessage{
 		Path:      "/api/health",
 		Timestamp: "invalid",
+		UserAttr:  &UserAttrMessage{UserID: "u1", Role: "user"},
 	}
 	msg := kafka.Message{Value: mustMarshal(event)}
 
@@ -200,7 +201,7 @@ func TestRequestConsumer_processMessage_invalid_timestamp_uses_now(t *testing.T)
 	}
 }
 
-func TestRequestConsumer_processMessage_nil_user_attr_no_violation(t *testing.T) {
+func TestRequestConsumer_processMessage_empty_user_attr_skips_save(t *testing.T) {
 	ctx := context.Background()
 	logRepo := &mockRequestLogInserter{}
 	violRepo := &mockViolationInserter{}
@@ -222,14 +223,36 @@ func TestRequestConsumer_processMessage_nil_user_attr_no_violation(t *testing.T)
 		t.Fatalf("processMessage: %v", err)
 	}
 
-	if len(logRepo.inserts) != 1 {
-		t.Fatalf("expected 1 insert, got %d", len(logRepo.inserts))
-	}
-	if logRepo.inserts[0].Role != "" {
-		t.Errorf("Role = %q, want empty", logRepo.inserts[0].Role)
+	if len(logRepo.inserts) != 0 {
+		t.Errorf("expected 0 inserts when user_id and role are empty, got %d", len(logRepo.inserts))
 	}
 	if len(violRepo.inserts) != 0 {
-		t.Errorf("empty role should not trigger violation, got %d", len(violRepo.inserts))
+		t.Errorf("expected 0 violations, got %d", len(violRepo.inserts))
+	}
+}
+
+func TestRequestConsumer_processMessage_user_attr_with_empty_strings_skips_save(t *testing.T) {
+	ctx := context.Background()
+	logRepo := &mockRequestLogInserter{}
+	violRepo := &mockViolationInserter{}
+	det := detector.New(cache.New())
+
+	consumer := NewRequestConsumer(nil, logRepo, violRepo, det)
+
+	event := AccessEventMessage{
+		Path:      "/api/health",
+		Timestamp: time.Now().Format(time.RFC3339),
+		UserAttr:  &UserAttrMessage{UserID: "", Role: ""},
+	}
+	msg := kafka.Message{Value: mustMarshal(event)}
+
+	err := consumer.processMessage(ctx, msg)
+	if err != nil {
+		t.Fatalf("processMessage: %v", err)
+	}
+
+	if len(logRepo.inserts) != 0 {
+		t.Errorf("expected 0 inserts when user_id and role are empty strings, got %d", len(logRepo.inserts))
 	}
 }
 
@@ -244,6 +267,7 @@ func TestRequestConsumer_processMessage_path_normalization(t *testing.T) {
 	event := AccessEventMessage{
 		Path:      "/users/550e8400-e29b-41d4-a716-446655440000",
 		Timestamp: time.Now().Format(time.RFC3339),
+		UserAttr:  &UserAttrMessage{UserID: "u1", Role: "user"},
 	}
 	msg := kafka.Message{Value: mustMarshal(event)}
 

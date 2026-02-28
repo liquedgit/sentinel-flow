@@ -116,6 +116,11 @@ func (c *RequestConsumer) processMessage(ctx context.Context, msg kafka.Message)
 		role = raw.UserAttr.Role
 	}
 
+	// Skip saving request logs when we don't have user_id and role
+	if userID == "" && role == "" {
+		return nil
+	}
+
 	log := &repository.RequestLog{
 		Timestamp:      timestamp,
 		Method:         raw.Method,
