@@ -119,7 +119,7 @@ services:
       AGENT_CMD: opencode
     volumes:
       - ./projects:/app/projects
-      - ./projects/example_project:/app/projects/example_project
+      - ./example_project:/app/projects/example_project
       - ./ai-agent-checker/prompts/prompt.dat:/app/prompt.dat:ro
     networks:
       - sentinel-flow
@@ -142,7 +142,9 @@ services:
       - sentinel-flow
 
   example-project:
-    image: sentinel-flow-example-project:latest
+    build:
+      context: ./example_project
+      dockerfile: Dockerfile
     container_name: example-project
     networks:
       - sentinel-flow

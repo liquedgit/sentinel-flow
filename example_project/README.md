@@ -7,6 +7,8 @@ A minimal Python backend for SentinelFlow agent integration. Exposes `/me` for i
 - `GET /` - Root
 - `GET /api/ping` - Health check
 - `GET /me` - Identity (returns `{"user_id": "...", "role": "..."}`)
+- `GET /admin` - List all admins
+- `POST /admin` - Create admin (requires `admin` role)
 
 ## Identity
 
@@ -26,6 +28,25 @@ Or:
 
 ```bash
 ./run.sh
+```
+
+**Example requests:**
+
+```bash
+# List admins (no auth)
+curl http://localhost:8081/admin
+
+# Create admin as alice (admin) - succeeds
+curl -X POST http://localhost:8081/admin \
+  -H "Authorization: Bearer alice-token" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "new-admin", "email": "new@example.com"}'
+
+# Create admin as bob (user) - 403 Forbidden
+curl -X POST http://localhost:8081/admin \
+  -H "Authorization: Bearer bob-token" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "new-admin", "email": "new@example.com"}'
 ```
 
 ## Integration

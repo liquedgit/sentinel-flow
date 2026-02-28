@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"text/template"
 )
@@ -73,7 +72,7 @@ func (r *AgentRunner) Run(params RunParams) error {
 	userPrompt := "Perform a security review of the API endpoint. Analyze the codebase for broken access control (RBAC) and report findings."
 
 	// Run from project directory; agent CLI expects to be in project context
-	cmd := exec.Command(r.agentCmd, "run", "--file", tmpFile.Name(), userPrompt)
+	cmd := exec.Command(r.agentCmd, "run", "--file", tmpFile.Name(), "--message", userPrompt)
 	cmd.Dir = params.ProjectPath
 	cmd.Env = os.Environ()
 
@@ -81,7 +80,9 @@ func (r *AgentRunner) Run(params RunParams) error {
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 
-	slog.Info("running agent", "project", filepath.Base(params.ProjectPath), "endpoint", params.Endpoint)
+	slog.Info("command to run", "command", cmd.String())
+	slog.Info("where command run", "directory", cmd.Dir)
+
 	if err := cmd.Run(); err != nil {
 		slog.Error("agent run failed", "error", err, "stderr", stderr.String())
 		return fmt.Errorf("agent execution: %w", err)
