@@ -78,7 +78,7 @@ export default function RegisterRoot() {
               type="text"
               name="org_name"
               placeholder="Sentinel Flow Inc."
-              className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500"
+              className="bg-primary-foreground text-white border-primary selection:bg-active-primary/50 selection:text-white"
             />
           </div>
           <div className="space-y-4">
@@ -90,7 +90,7 @@ export default function RegisterRoot() {
               type="email"
               name="email"
               placeholder="admin@sentinelflow.com"
-              className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500"
+              className="bg-primary-foreground text-white border-primary selection:bg-active-primary/50 selection:text-white"
             />
           </div>
           <div className="flex space-x-4 justify-between">
@@ -103,7 +103,7 @@ export default function RegisterRoot() {
                 type="password"
                 placeholder="Password"
                 name="password"
-                className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500"
+                className="bg-primary-foreground text-white border-primary selection:bg-active-primary/50 selection:text-white"
               />
             </div>
             <div>
@@ -115,7 +115,7 @@ export default function RegisterRoot() {
                 type="password"
                 placeholder="Confirm password"
                 name="confirm_password"
-                className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500"
+                className="bg-primary-foreground text-white border-primary selection:bg-active-primary/50 selection:text-white"
               />
             </div>
           </div>

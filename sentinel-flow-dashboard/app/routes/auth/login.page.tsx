@@ -68,7 +68,7 @@ export default function SignInCard() {
               type="email"
               name="email"
               placeholder="user@sentinelflow.com"
-              className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500"
+              className="bg-primary-foreground text-white border-primary selection:bg-active-primary/50 selection:text-white"
             />
           </div>
 
@@ -81,7 +81,7 @@ export default function SignInCard() {
               type="password"
               name="password"
               placeholder="Enter your password"
-              className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500"
+              className="bg-primary-foreground text-white border-primary selection:bg-active-primary/50 selection:text-white"
             />
           </div>
 

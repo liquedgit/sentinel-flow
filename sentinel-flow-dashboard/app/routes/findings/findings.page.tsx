@@ -57,7 +57,7 @@ export default function FindingsPage() {
           <Input
             type="text"
             placeholder="Search findings"
-            className="bg-primary-foreground text-white border-primary"
+            className="bg-primary-foreground text-white border-primary selection:bg-active-primary/50 selection:text-white"
           />
         </div>
       </div>
