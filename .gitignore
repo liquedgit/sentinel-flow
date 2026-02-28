@@ -92,5 +92,7 @@ Thumbs.db
 
 # Docker
 .dockerignore
-
 docker-compose.local.yml
+
+# Project List
+projects/*
