@@ -54,8 +54,8 @@ services:
       KAFKA_BROKERS: kafka:9092
       KAFKA_TOPIC: sf-events-access
       ME_ENDPOINT: http://example-project:8081/me
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+#    extra_hosts:
+#      - "host.docker.internal:host-gateway"
     networks:
       - sentinel-flow
       - web
