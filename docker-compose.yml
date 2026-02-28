@@ -10,6 +10,8 @@ services:
     volumes:
       - zookeeper-data:/var/lib/zookeeper/data
       - zookeeper-log:/var/lib/zookeeper/log
+    networks:
+      - sentinel-flow
 
   kafka:
     image: confluentinc/cp-kafka:7.6.0
@@ -35,6 +37,8 @@ services:
 
     volumes:
       - kafka-data:/var/lib/kafka/data
+    networks:
+      - sentinel-flow
 
   agent:
     build:
@@ -44,16 +48,17 @@ services:
     depends_on:
       kafka:
         condition: service_started
-    ports:
-      - "9000:9000"
     environment:
-      BACKEND_URL: http://host.docker.internal:8081
+      BACKEND_URL: http://example-project:8081
       LISTEN_ADDR: ":9000"
       KAFKA_BROKERS: kafka:9092
       KAFKA_TOPIC: sf-events-access
-      ME_ENDPOINT: http://host.docker.internal:8081/me
+      ME_ENDPOINT: http://example-project:8081/me
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    networks:
+      - sentinel-flow
+      - web
 
   postgres:
     image: postgres:16-alpine
@@ -72,6 +77,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - sentinel-flow
 
   detection-engine:
     build:
@@ -92,6 +99,8 @@ services:
       LEARNING_WINDOW_DAYS: 90
       VIOLATION_THRESHOLD_PERCENT: 5
       MINIMUM_SAMPLE_SIZE: 100
+    networks:
+      - sentinel-flow
 
   ai-agent-checker:
     build:
@@ -112,24 +121,41 @@ services:
       - ./projects:/app/projects
       - ./projects/example_project:/app/projects/example_project
       - ./ai-agent-checker/prompts/prompt.dat:/app/prompt.dat:ro
+    networks:
+      - sentinel-flow
 
   dashboard:
     build:
       context: ./sentinel-flow-dashboard
       dockerfile: Dockerfile
     container_name: sentinel-flow-dashboard
-    env_file:
-      - ./sentinel-flow-dashboard/.env
+    environment:
+      - DATABASE_URL=postgresql://sentinel:sentinel@postgres:5432/sentinel_flow
+      - SESSION_SECRET=s3nt1n3lfl0ws3cr3t!
     depends_on:
       kafka:
         condition: service_started
       postgres:
         condition: service_healthy
-    ports:
-      - "3000:3000"
+    networks:
+      - web
+      - sentinel-flow
+
+  example-project:
+    image: sentinel-flow-example-project:latest
+    container_name: example-project
+    networks:
+      - sentinel-flow
+
+networks:
+  sentinel-flow:
+    name: sentinel-flow-net
+  web:
+    external: true
 
 volumes:
   zookeeper-data:
   zookeeper-log:
   kafka-data:
   postgres-data:
+

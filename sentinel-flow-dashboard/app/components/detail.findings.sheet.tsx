@@ -13,7 +13,6 @@ import { Sparkles } from "lucide-react";
 import RequestMethod from "./requestmethod";
 import StatusCode from "./statuscode";
 import InlineCode from "./inlinecode";
-import { ViolationType } from "~/lib/violation";
 import { ScrollArea } from "./ui/scroll-area";
 
 export type ViolationWithRequestLog = Prisma.ViolationGetPayload<{

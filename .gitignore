@@ -19,6 +19,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!sentinel-flow-dashboard/app/lib
 lib64/
 parts/
 sdist/
@@ -91,6 +92,7 @@ Thumbs.db
 
 # Docker
 .dockerignore
+docker-compose.local.yml
 
 # Project List
 projects/*
