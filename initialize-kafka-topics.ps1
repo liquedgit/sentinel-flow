@@ -18,4 +18,10 @@ docker compose exec kafka kafka-topics --bootstrap-server localhost:9092 `
   --partitions 1 `
   --replication-factor 1
 
+docker compose exec kafka kafka-topics --bootstrap-server localhost:9092 `
+  --create --if-not-exists `
+  --topic sf-check-requests `
+  --partitions 1 `
+  --replication-factor 1
+
 Write-Host "Kafka topics created successfully"

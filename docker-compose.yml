@@ -92,6 +92,27 @@ services:
       LEARNING_WINDOW_DAYS: 90
       VIOLATION_THRESHOLD_PERCENT: 5
       MINIMUM_SAMPLE_SIZE: 100
+
+  ai-agent-checker:
+    build:
+      context: ./ai-agent-checker
+      dockerfile: Dockerfile
+    container_name: ai-agent-checker
+    depends_on:
+      kafka:
+        condition: service_started
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_TOPIC_CHECK_REQUESTS: sf-check-requests
+      KAFKA_GROUP_ID: ai-agent-checker
+      PROJECTS_DIR: /app/projects
+      PROMPT_FILE: /app/prompt.dat
+      AGENT_CMD: opencode
+    volumes:
+      - ./projects:/app/projects
+      - ./projects/example_project:/app/projects/example_project
+      - ./ai-agent-checker/prompts/prompt.dat:/app/prompt.dat:ro
+
   dashboard:
     build:
       context: ./sentinel-flow-dashboard

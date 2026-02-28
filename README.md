@@ -71,7 +71,13 @@ Traffic is observed over a learning window; only after enough data is collected 
    docker compose up -d
    ```
 
-2. **Run the example backend** (optional, for end-to-end testing):
+2. **Configure agent-checker auth**: Create a `.env` file at the repo root. For OpenCode (default), run `opencode auth login` or set provider API keys (e.g. `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`). See [OpenCode docs](https://opencode.ai/docs/).
+
+   ```
+   ANTHROPIC_API_KEY=your-key-here
+   ```
+
+3. **Run the example backend** (optional, for end-to-end testing):
 
    ```bash
    cd example_project
@@ -79,7 +85,9 @@ Traffic is observed over a learning window; only after enough data is collected 
    uvicorn app.main:app --host 0.0.0.0 --port 8081
    ```
 
-3. **Send traffic through the agent** (e.g. `http://localhost:9000`). The agent forwards to your app and publishes events to Kafka; the detection engine learns and evaluates access patterns.
+4. **Send traffic through the agent** (e.g. `http://localhost:9000`). The agent forwards to your app and publishes events to Kafka; the detection engine learns and evaluates access patterns.
+
+**Agent-checker**: To run code-level security checks on flagged endpoints, place your API project folders under `projects/` and produce messages to the `sf-check-requests` Kafka topic (e.g. from the dashboard or manually). The agent-checker consumes these requests and runs OpenCode CLI against the project codebase.
 
 See the [documentation](https://sentinel-flow-docs.pages.dev/docs/intro/) for architecture details, configuration, and deployment.
 
@@ -91,9 +99,11 @@ See the [documentation](https://sentinel-flow-docs.pages.dev/docs/intro/) for ar
 |------|-------------|
 | `agent/` | Go reverse proxy: intercepts requests, resolves identity, publishes to Kafka |
 | `detection-engine/` | Go service: consumes Kafka, learns mappings, detects violations, stores in PostgreSQL |
+| `agent-checker/` | Go service: consumes check requests from Kafka, validates project existence, runs OpenCode CLI for code-level security review of flagged endpoints |
 | `sentinel-flow-dashboard/` | Web UI for violations and configuration |
 | `example_project/` | Minimal Python app with `/me` for testing the agent |
 | `docs/` | Docusaurus site (source for the published docs) |
+| `projects/` | Project folders for agent-checker (mount point; add API projects for code review) |
 | `sql/` | PostgreSQL schema and init scripts |
 
 ---

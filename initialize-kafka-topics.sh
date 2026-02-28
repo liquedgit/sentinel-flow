@@ -20,6 +20,12 @@ kafka-topics --bootstrap-server localhost:9092 \
   --create --if-not-exists \
   --topic scan-requests \
   --partitions 1 \
+  --replication-factor 1 &&
+
+kafka-topics --bootstrap-server localhost:9092 \
+  --create --if-not-exists \
+  --topic sf-check-requests \
+  --partitions 1 \
   --replication-factor 1
 "
 
