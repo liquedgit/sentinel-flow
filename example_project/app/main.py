@@ -2,9 +2,11 @@
 
 from fastapi import FastAPI, Header, HTTPException
 
+from .admin import router as admin_router
 from .identity import resolve_identity
 
 app = FastAPI(title="Example Project", description="Backend for SentinelFlow agent testing")
+app.include_router(admin_router, prefix="/admin", tags=["admin"])
 
 
 @app.get("/")
