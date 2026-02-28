@@ -9,6 +9,7 @@ export default [
     layout(BASE_PATH + "/layout.tsx", [
         index(BASE_PATH + "/dashboard/dashboard.page.tsx"),
         route("findings", BASE_PATH + "/findings/findings.page.tsx"),
+        route("authorization-graph-explorer", BASE_PATH + "/authorization-graph-explorer/authorization-graph-explorer.page.tsx"),
         route("learn-mappping", BASE_PATH + "/learn-mapping/learn-mapping.page.tsx"),
         route("agents", BASE_PATH + "/agents/agents.page.tsx")
     ]),
