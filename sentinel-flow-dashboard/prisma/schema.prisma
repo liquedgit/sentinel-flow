@@ -102,7 +102,9 @@ model Agent {
   name             String
   identityEndpoint String
   backendBaseUrl   String
-  token            String
+  token            String    @unique
+  identityMapping  Json
+  lastHeartbeat    DateTime? @map("last_heartbeat")
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   deletedAt        DateTime?
