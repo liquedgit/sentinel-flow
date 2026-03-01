@@ -81,8 +81,8 @@ model Violation {
   requestLogId   BigInt?   @map("request_log_id")
   createdAt      DateTime  @default(now()) @map("created_at")
 
-  requestLog   RequestLog? @relation(fields: [requestLogId], references: [id])
-  resolvedByUser User?     @relation(fields: [resolvedById], references: [id])
+  requestLog     RequestLog? @relation(fields: [requestLogId], references: [id])
+  resolvedByUser User?       @relation(fields: [resolvedById], references: [id])
 
   @@map("violations")
 }
@@ -95,6 +95,17 @@ model Configuration {
   updatedBy String?  @map("updated_by") @db.VarChar(255)
 
   @@map("configurations")
+}
+
+model Agent {
+  id               String    @id @default(uuid())
+  name             String
+  identityEndpoint String
+  backendBaseUrl   String
+  token            String
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
 }
 
 // Audit log

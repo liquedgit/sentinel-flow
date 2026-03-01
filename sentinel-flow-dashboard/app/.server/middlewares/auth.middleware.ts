@@ -35,21 +35,25 @@ export async function guestMidleware({ request }: { request: Request }) {
         });
     }
 
-    if (session.has("userId")) {
+
+    if (session.has("userId") && organization) {
         throw redirect("/", {
             headers: { "Set-Cookie": await commitSession(session) },
         });
     }
+
+    // console.log(requestPath)
 
 }
 
 export async function firstTimeSetupMiddleware({ request }: { request: Request }) {
     const organization = await getOrganizationService();
     const requestPath = request.url.split("/").pop();
+    console.log(requestPath)
     const session = await getSessionFromRequest(request);
-    if (!organization && requestPath !== "root") {
+    if (!organization && requestPath !== "root" ) {
         throw redirect("/auth/root", {
-            headers: { "Set-Cookie": await commitSession(session) },
+            headers: { "Set-Cookie": await destroySession(session) },
         });
     }
 

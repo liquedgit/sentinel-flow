@@ -13,7 +13,6 @@ export default [
         route("learn-mappping", BASE_PATH + "/learn-mapping/learn-mapping.page.tsx"),
         route("agents", BASE_PATH + "/agents/agents.page.tsx")
     ]),
-    route("test", BASE_PATH + "/test.tsx"),
     // auth prefixed routes under /auth
     ...prefix("auth", [
         layout(BASE_PATH + "/auth/layout.tsx", [
