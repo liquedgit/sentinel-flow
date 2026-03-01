@@ -1,8 +1,8 @@
-import type { BaseResponseDtoWithErrors } from "../types/dto/base.dto";
-import { Role } from "../types/role";
+
 import bcrypt from "bcrypt"
 import { createUserService, getUserByEmailService } from "./user.service";
 import type { User } from "@/generated/prisma/client";
+import type { Role } from "~/lib/types/role";
 
 export async function registerUserService(email: string, password: string, role: Role): Promise<User | null> {
     const passwordHash = await bcrypt.hash(password, 10);

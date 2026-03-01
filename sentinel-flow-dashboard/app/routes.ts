@@ -11,7 +11,8 @@ export default [
         route("findings", BASE_PATH + "/findings/findings.page.tsx"),
         route("authorization-graph-explorer", BASE_PATH + "/authorization-graph-explorer/authorization-graph-explorer.page.tsx"),
         route("learn-mappping", BASE_PATH + "/learn-mapping/learn-mapping.page.tsx"),
-        route("agents", BASE_PATH + "/agents/agents.page.tsx")
+        route("agents", BASE_PATH + "/agents/agents.page.tsx"),
+        route("agents/:id", BASE_PATH + "/agents/agents.$id.ts")
     ]),
     // auth prefixed routes under /auth
     ...prefix("auth", [
@@ -21,4 +22,10 @@ export default [
         ]),
         route("logout", BASE_PATH + "/auth/logout.page.tsx"),
     ]),
+
+    ...prefix("api", [
+        ...prefix("agents", [
+            route("heartbeat", BASE_PATH + "/agents/agents.api.heartbeat.ts"),
+        ]),
+    ])
 ] satisfies RouteConfig;

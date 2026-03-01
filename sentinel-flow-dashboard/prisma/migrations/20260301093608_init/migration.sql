@@ -84,6 +84,9 @@ CREATE TABLE "Agent" (
     "name" TEXT NOT NULL,
     "identityEndpoint" TEXT NOT NULL,
     "backendBaseUrl" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "identityMapping" JSONB NOT NULL,
+    "last_heartbeat" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
@@ -112,6 +115,9 @@ CREATE UNIQUE INDEX "Organization_organizationName_key" ON "Organization"("organ
 
 -- CreateIndex
 CREATE UNIQUE INDEX "endpoint_role_mappings_normalized_path_allowed_role_key" ON "endpoint_role_mappings"("normalized_path", "allowed_role");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Agent_token_key" ON "Agent"("token");
 
 -- AddForeignKey
 ALTER TABLE "violations" ADD CONSTRAINT "violations_request_log_id_fkey" FOREIGN KEY ("request_log_id") REFERENCES "request_logs"("id") ON DELETE SET NULL ON UPDATE CASCADE;
