@@ -79,6 +79,19 @@ CREATE TABLE "configurations" (
 );
 
 -- CreateTable
+CREATE TABLE "Agent" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "identityEndpoint" TEXT NOT NULL,
+    "backendBaseUrl" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
+
+    CONSTRAINT "Agent_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "audit_logs" (
     "id" TEXT NOT NULL,
     "action" VARCHAR(100) NOT NULL,

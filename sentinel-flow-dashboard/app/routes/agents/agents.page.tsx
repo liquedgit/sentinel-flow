@@ -1,4 +1,3 @@
-import { EyeOff, Eye, Copy } from "lucide-react";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -17,10 +16,18 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
+import type { Route } from "./+types/agents.page";
 
 export enum SidebarAgentType {
   SidebarAgentTypeCREATE = "CREATE",
   SidebarAgentTypeEDIT = "EDIT",
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  const formData = await request.formData();
+  const agentName = String(formData.get("agentName"));
+  const identityEndpoint = String(formData.get("agentName"));
+  const backendBaseUrl = String(formData.get("backendBaseUrl"));
 }
 
 export default function AgentsPage() {
@@ -28,8 +35,6 @@ export default function AgentsPage() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
 
   // Form state for CREATE mode
-  const [step, setStep] = useState(1);
-  const [showToken, setShowToken] = useState(false);
   const [formData, setFormData] = useState({
     agentName: "production-collector-01",
     identityEndpoint: "https://identity.sentinelflow.io",
@@ -169,7 +174,7 @@ export default function AgentsPage() {
             infrastructure.
           </p>
         </div>
-        <div>
+        <div className="flex items-center">
           <Button
             className="bg-active-primary hover:bg-active-primary/50 text-white"
             onClick={() =>
