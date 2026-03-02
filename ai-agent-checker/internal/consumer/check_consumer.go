@@ -13,6 +13,7 @@ import (
 
 // CheckRequestMessage is the schema for check requests.
 type CheckRequestMessage struct {
+	RequestId       string   `json:"request_id"`
 	ProjectName     string   `json:"project_name"`
 	Method          string   `json:"method"`
 	Endpoint        string   `json:"endpoint"`

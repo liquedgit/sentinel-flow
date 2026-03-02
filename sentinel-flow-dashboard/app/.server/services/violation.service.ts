@@ -16,3 +16,12 @@ export async function getViolations(): Promise<ViolationWithRequestLog[]> {
     });
 }
 
+export async function getViolationById(
+    id: number
+): Promise<ViolationWithRequestLog | null> {
+    return await prisma.violation.findUnique({
+        where: { id },
+        include: { requestLog: true },
+    });
+}
+

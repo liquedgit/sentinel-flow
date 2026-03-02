@@ -24,10 +24,16 @@ export default function DetailFindingsSheet({
   selected,
   setSelected,
   deepCodeAnalysisResponse,
+  onRequestDeepAnalysis,
+  isRequestingDeepAnalysis = false,
+  deepAnalysisError = null,
 }: {
   selected: ViolationWithRequestLog | null;
   setSelected: (selected: ViolationWithRequestLog | null) => void;
   deepCodeAnalysisResponse: string | null;
+  onRequestDeepAnalysis?: (violation: ViolationWithRequestLog) => void;
+  isRequestingDeepAnalysis?: boolean;
+  deepAnalysisError?: string | null;
 }) {
   const getViolationType = (selected: ViolationWithRequestLog | null) => {
     // TODO: Validate Violation Type
@@ -278,10 +284,25 @@ export default function DetailFindingsSheet({
                 </Button>
               </div>
               {deepCodeAnalysisResponse === null && (
-                <div className="flex items-center justify-center w-full text-white">
-                  <Button className="border-active-primary border text-active-primary bg-primary-foreground hover:bg-light-blue">
+                <div className="flex flex-col items-center justify-center w-full text-white gap-2">
+                  {deepAnalysisError && (
+                    <div className="text-sm text-destructive">{deepAnalysisError}</div>
+                  )}
+                  <Button
+                    className="border-active-primary border text-active-primary bg-primary-foreground hover:bg-light-blue"
+                    disabled={
+                      !selected ||
+                      !onRequestDeepAnalysis ||
+                      isRequestingDeepAnalysis
+                    }
+                    onClick={() =>
+                      selected && onRequestDeepAnalysis?.(selected)
+                    }
+                  >
                     <Sparkles className="size-4" />
-                    Deep Code Analysis with AI
+                    {isRequestingDeepAnalysis
+                      ? "Requesting..."
+                      : "Deep Code Analysis with AI"}
                   </Button>
                 </div>
               )}
