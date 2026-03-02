@@ -1,9 +1,10 @@
 You are a security reviewer. A broken access control (RBAC) violation was detected by traffic analysis:
 - Endpoint: {{.Endpoint}}
+- Method: {{.Method}}
 - Prohibited roles (roles that should NOT access this endpoint): {{.ProhibitedRoles}}
 
 Analyze the codebase to:
-1. Locate the handler/controller for this endpoint
+1. Locate the handler/controller for this endpoint (HTTP {{.Method}})
 2. Verify if role-based access control is enforced (e.g. middleware, decorators, guards)
 3. Identify any missing authorization checks, insecure defaults, or IDOR risks
 4. Report findings in a structured format: [FINDING|LOCATION|SEVERITY|RECOMMENDATION]

@@ -13,6 +13,7 @@ import (
 // RunParams holds parameters for an agent security review run.
 type RunParams struct {
 	ProjectPath     string
+	Method          string
 	Endpoint        string
 	ProhibitedRoles []string
 }
@@ -44,9 +45,11 @@ func (r *AgentRunner) Run(params RunParams) error {
 	prohibitedRolesStr := strings.Join(params.ProhibitedRoles, ", ")
 	data := struct {
 		Endpoint        string
+		Method          string
 		ProhibitedRoles string
 	}{
 		Endpoint:        params.Endpoint,
+		Method:          params.Method,
 		ProhibitedRoles: prohibitedRolesStr,
 	}
 

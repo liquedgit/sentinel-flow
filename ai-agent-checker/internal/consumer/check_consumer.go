@@ -14,6 +14,7 @@ import (
 // CheckRequestMessage is the schema for check requests.
 type CheckRequestMessage struct {
 	ProjectName     string   `json:"project_name"`
+	Method          string   `json:"method"`
 	Endpoint        string   `json:"endpoint"`
 	ProhibitedRoles []string `json:"prohibited_roles"`
 }
@@ -79,6 +80,7 @@ func (c *CheckConsumer) processMessage(ctx context.Context, msg kafka.Message) e
 
 	params := runner.RunParams{
 		ProjectPath:     projectPath,
+		Method:          req.Method,
 		Endpoint:        req.Endpoint,
 		ProhibitedRoles: req.ProhibitedRoles,
 	}
