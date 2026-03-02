@@ -1,167 +1,136 @@
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { useState, useCallback } from "react";
 import { data, useLoaderData } from "react-router";
-import { getEndpointRoleMappingsService } from "~/.server/services/endpoint.role.mappings.service";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Skeleton } from "~/components/ui/skeleton";
+import type { Route } from "./+types/authorization-graph-explorer.page";
+import {
+    getEndpointRoleMappingsService,
+    getDistinctRoles,
+} from "~/.server/services/endpoint.role.mappings.service";
+import { addEndpointRoleMapping, removeEndpointRoleMapping } from "~/.server/services/endpoint.role.mappings.service";
+import DetailNodeSheet, {
+    type GraphNode,
+    type AuthorizationGraphData,
+} from "~/components/detail.node.sheet";
+import ForceGraph2D from "react-force-graph-2d";
 
-const ForceGraph2D = lazy(() =>
-  import("react-force-graph-2d").then((mod) => ({ default: mod.default }))
-);
-
-export interface GraphNode {
-  id: string;
-  name: string;
-  type: "endpoint" | "role";
-}
-
-export interface GraphLink {
-  source: string;
-  target: string;
-}
-
-export interface AuthorizationGraphData {
-  nodes: GraphNode[];
-  links: GraphLink[];
-}
-
-function transformToGraphData(
-  mappings: Awaited<ReturnType<typeof getEndpointRoleMappingsService>>
+function buildGraphData(
+    mappings: { normalizedPath: string; allowedRole: string }[]
 ): AuthorizationGraphData {
-  const nodeIds = new Set<string>();
-  const nodes: GraphNode[] = [];
-  const links: GraphLink[] = [];
+    const endpointIds = new Set(mappings.map((m) => m.normalizedPath));
+    const roleIds = new Set(mappings.map((m) => m.allowedRole));
+    const nodeIds = new Set([...endpointIds, ...roleIds]);
+    const links = mappings.map((m) => ({
+        source: m.normalizedPath,
+        target: m.allowedRole,
+    }));
 
-  for (const m of mappings) {
-    const endpointId = `endpoint:${m.normalizedPath}`;
-    const roleId = `role:${m.allowedRole}`;
+    const nodes: GraphNode[] = Array.from(nodeIds).map((id) => ({
+        id,
+        type: endpointIds.has(id) ? "endpoint" : "role",
+    }));
 
-    if (!nodeIds.has(endpointId)) {
-      nodeIds.add(endpointId);
-      nodes.push({
-        id: endpointId,
-        name: m.normalizedPath,
-        type: "endpoint",
-      });
-    }
-    if (!nodeIds.has(roleId)) {
-      nodeIds.add(roleId);
-      nodes.push({
-        id: roleId,
-        name: m.allowedRole,
-        type: "role",
-      });
-    }
-    links.push({ source: endpointId, target: roleId });
-  }
-
-  return { nodes, links };
+    return { nodes, links };
 }
 
 export async function loader() {
-  const mappings = await getEndpointRoleMappingsService();
-  const graphData = transformToGraphData(mappings);
-  return data(graphData, { status: 200 });
+    const [mappings, distinctRoles] = await Promise.all([
+        getEndpointRoleMappingsService(),
+        getDistinctRoles(),
+    ]);
+
+    const graphData = buildGraphData(
+        mappings.map((m) => ({
+            normalizedPath: m.normalizedPath,
+            allowedRole: m.allowedRole,
+        }))
+    );
+
+    return data(
+        {
+            graphData,
+            distinctRoles,
+        },
+        { status: 200 }
+    );
 }
 
-function AuthorizationGraph({ graphData }: { graphData: AuthorizationGraphData }) {
-  const [mounted, setMounted] = useState(false);
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-  const containerRef = useRef<HTMLDivElement>(null);
+export async function action({ request }: Route.ActionArgs) {
+    const formData = await request.formData();
+    const intent = formData.get("intent") as string | null;
+    const normalizedPath = formData.get("normalizedPath") as string | null;
+    const allowedRole = formData.get("allowedRole") as string | null;
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+    if (!normalizedPath || !allowedRole) {
+        return data({ success: false, error: "Missing normalizedPath or allowedRole" }, { status: 400 });
+    }
 
-  useEffect(() => {
-    if (!mounted || !containerRef.current) return;
-    const el = containerRef.current;
-    const updateSize = () => {
-      if (el) {
-        setDimensions({ width: el.clientWidth, height: el.clientHeight });
-      }
-    };
-    updateSize();
-    const observer = new ResizeObserver(updateSize);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [mounted]);
-
-  if (!mounted) {
-    return (
-      <Skeleton className="h-[500px] w-full rounded-md bg-primary-foreground/50" />
-    );
-  }
-
-  return (
-    <div ref={containerRef} className="w-full h-[500px]">
-      <ForceGraph2D
-        graphData={graphData}
-        width={dimensions.width}
-        height={dimensions.height}
-        nodeLabel="name"
-        nodeCanvasObjectMode={() => "after"}
-        nodeCanvasObject={(node, ctx, globalScale) => {
-          const label = (node as GraphNode).name;
-          const fontSize = 12 / (globalScale);
-          ctx.font = `${fontSize}px Inter, sans-serif`;
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
-          ctx.fillText(label, node.x!, node.y!);
-        }}
-        nodeColor={(node) =>
-          (node as GraphNode).type === "endpoint" ? "#137fec" : "#10b981"
+    if (intent === "add-role") {
+        try {
+            await addEndpointRoleMapping(normalizedPath, allowedRole);
+            return data({ success: true }, { status: 200 });
+        } catch (e) {
+            return data(
+                { success: false, error: e instanceof Error ? e.message : "Failed to add role" },
+                { status: 500 }
+            );
         }
-        linkColor={() => "#525252"}
-        backgroundColor="transparent"
-      />
-    </div>
-  );
+    }
+
+    if (intent === "remove-role") {
+        try {
+            await removeEndpointRoleMapping(normalizedPath, allowedRole);
+            return data({ success: true }, { status: 200 });
+        } catch (e) {
+            return data(
+                { success: false, error: e instanceof Error ? e.message : "Failed to remove role" },
+                { status: 500 }
+            );
+        }
+    }
+
+    return data({ success: false, error: "Unknown intent" }, { status: 400 });
 }
 
 export default function AuthorizationGraphExplorerPage() {
-  const graphData = useLoaderData<typeof loader>();
+    const { graphData, distinctRoles } = useLoaderData<typeof loader>();
+    const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
 
-  if (graphData.nodes.length === 0) {
+    const handleNodeClick = useCallback((node: { id?: string; type?: string }) => {
+        if (node.id && (node.type === "endpoint" || node.type === "role")) {
+            setSelectedNode({
+                id: node.id,
+                type: node.type as "endpoint" | "role",
+            });
+        }
+    }, []);
+
+    const graphDataForLib = {
+        nodes: graphData.nodes,
+        links: graphData.links,
+    };
+
     return (
-      <div className="p-4 space-y-4">
-        <Card className="bg-primary-foreground border-primary">
-          <CardHeader>
-            <CardTitle className="text-white">
-              Authorization Graph Explorer
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              No endpoint-role mappings yet. Mappings will appear here once they
-              are learned from your application logs.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+        <div className="flex flex-1 h-full min-h-0 p-4">
+            <div className="flex-1 min-w-0 rounded-md border border-primary overflow-hidden bg-primary-foreground">
+                <ForceGraph2D
+                    graphData={graphDataForLib}
+                    nodeId="id"
+                    nodeLabel={(node) => String((node as GraphNode).id)}
+                    nodeColor={(node) =>
+                        (node as GraphNode).type === "endpoint"
+                            ? "#137fec"
+                            : "#10b981"
+                    }
+                    onNodeClick={handleNodeClick}
+                    linkDirectionalArrowLength={3.5}
+                    linkDirectionalArrowRelPos={1}
+                />
+            </div>
+            <DetailNodeSheet
+                selectedNode={selectedNode}
+                onClose={() => setSelectedNode(null)}
+                graphData={graphData}
+                distinctRoles={distinctRoles}
+            />
+        </div>
     );
-  }
-
-  return (
-    <div className="p-4 space-y-4">
-      <Card className="bg-primary-foreground border-primary overflow-hidden">
-        <CardHeader>
-          <CardTitle className="text-white">
-            Authorization Graph Explorer
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border border-primary overflow-hidden">
-            <Suspense
-              fallback={
-                <Skeleton className="h-[500px] w-full bg-primary-foreground/50" />
-              }
-            >
-              <AuthorizationGraph graphData={graphData} />
-            </Suspense>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
 }

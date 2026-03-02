@@ -16,3 +16,25 @@ export async function getRequestLogById(id: number): Promise<RequestLog | null> 
         },
     });
 }
+
+export async function getRequestLogsByNormalizedPath(
+    normalizedPath: string,
+    limit = 10
+): Promise<RequestLog[]> {
+    return await prisma.requestLog.findMany({
+        where: { normalizedPath },
+        orderBy: { timestamp: "desc" },
+        take: limit,
+    });
+}
+
+export async function getRequestLogsByRole(
+    role: string,
+    limit = 10
+): Promise<RequestLog[]> {
+    return await prisma.requestLog.findMany({
+        where: { role },
+        orderBy: { timestamp: "desc" },
+        take: limit,
+    });
+}
