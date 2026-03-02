@@ -29,6 +29,13 @@ func NewMeResolver(endpoint, method, userIDField, roleField string) *MeResolver 
 }
 
 func (r *MeResolver) Resolve(ctx context.Context, req *http.Request) (*Identity, error) {
+	// Use headers directly if present (skip /me call)
+	if userID := req.Header.Get("X-User-Id"); userID != "" {
+		role := req.Header.Get("X-Role")
+		return &Identity{UserID: userID, Role: role}, nil
+	}
+
+	// Fall back to /me endpoint
 	meReq, err := http.NewRequestWithContext(ctx, r.Method, r.Endpoint, nil)
 	if err != nil {
 		return nil, err
