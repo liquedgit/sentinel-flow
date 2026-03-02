@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { data, useLoaderData } from "react-router";
+import { data, useLoaderData, useFetcher } from "react-router";
 import { getViolations } from "~/.server/services/violation.service";
+import { createAICheckerRequest } from "~/.server/services/ai-checker-request.service";
 import DetailFindingsSheet from "~/components/detail.findings.sheet";
 import { Input } from "~/components/ui/input";
 import {
@@ -12,6 +13,35 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import type { ViolationWithRequestLog as ViolationWithRequestLogClientType } from "~/components/detail.findings.sheet";
+
+export async function action({ request }: { request: Request }) {
+  if (request.method !== "POST") {
+    return data({ success: false, error: "Method not allowed" }, { status: 405 });
+  }
+  const formData = await request.formData();
+  const violationId = formData.get("violationId");
+  if (violationId === null || violationId === "") {
+    return data(
+      { success: false, error: "violationId is required" },
+      { status: 400 }
+    );
+  }
+  const id = parseInt(String(violationId), 10);
+  if (Number.isNaN(id)) {
+    return data(
+      { success: false, error: "violationId must be a number" },
+      { status: 400 }
+    );
+  }
+  try {
+    await createAICheckerRequest(id);
+    return data({ success: true }, { status: 200 });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Failed to create AI checker request";
+    return data({ success: false, error: message }, { status: 500 });
+  }
+}
 
 export async function loader() {
   const violations = await getViolations();
@@ -49,6 +79,14 @@ export default function FindingsPage() {
   const violations = useLoaderData<typeof loader>();
   const [selected, setSelected] =
     useState<ViolationWithRequestLogClientType | null>(null);
+  const fetcher = useFetcher<typeof action>();
+
+  const handleRequestDeepAnalysis = (violation: ViolationWithRequestLogClientType) => {
+    fetcher.submit(
+      { violationId: String(violation.id) },
+      { method: "POST", action: "/findings" }
+    );
+  };
 
   return (
     <div className="p-4 space-y-4">
@@ -103,6 +141,16 @@ export default function FindingsPage() {
         selected={selected}
         setSelected={setSelected}
         deepCodeAnalysisResponse={null}
+        onRequestDeepAnalysis={handleRequestDeepAnalysis}
+        isRequestingDeepAnalysis={fetcher.state === "submitting"}
+        deepAnalysisError={
+          fetcher.data &&
+          typeof fetcher.data === "object" &&
+          "success" in fetcher.data &&
+          !(fetcher.data as { success: boolean }).success
+            ? (fetcher.data as { error?: string }).error ?? null
+            : null
+        }
       />
     </div>
   );

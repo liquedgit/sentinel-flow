@@ -81,10 +81,27 @@ model Violation {
   requestLogId   BigInt?   @map("request_log_id")
   createdAt      DateTime  @default(now()) @map("created_at")
 
-  requestLog     RequestLog? @relation(fields: [requestLogId], references: [id])
-  resolvedByUser User?       @relation(fields: [resolvedById], references: [id])
+  requestLog       RequestLog?       @relation(fields: [requestLogId], references: [id])
+  resolvedByUser   User?             @relation(fields: [resolvedById], references: [id])
+  aiCheckerRequests AICheckerRequest[]
 
   @@map("violations")
+}
+
+// AI checker requests for deep code analysis
+model AICheckerRequest {
+  id                 String    @id @default(uuid())
+  violationId        Int       @map("violation_id")
+  status             String    @db.VarChar(20) // "failed" | "running"
+  isViolation        Boolean?  @map("is_violation")
+  description        String?   @db.Text
+  shortDescription   String?   @map("short_description") @db.VarChar(500)
+  impact             String?   @db.Text
+  recommendationFix  String?   @map("recommendation_fix") @db.Text
+  createdAt          DateTime  @default(now()) @map("created_at")
+
+  violation Violation @relation(fields: [violationId], references: [id])
+  @@map("ai_checker_requests")
 }
 
 // System configuration

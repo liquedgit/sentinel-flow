@@ -134,6 +134,8 @@ services:
     environment:
       - DATABASE_URL=postgresql://sentinel:sentinel@postgres:5432/sentinel_flow
       - SESSION_SECRET=s3nt1n3lfl0ws3cr3t!
+      - KAFKA_BROKERS=kafka:9092
+      - KAFKA_TOPIC_CHECK_REQUESTS=sf-check-requests
     depends_on:
       kafka:
         condition: service_started
