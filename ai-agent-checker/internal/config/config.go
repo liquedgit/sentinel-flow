@@ -9,6 +9,7 @@ import (
 
 // Config holds all configuration for the agent-checker.
 type Config struct {
+	DatabaseURL            string
 	KafkaBrokers           string
 	KafkaTopicCheckRequests string
 	KafkaGroupID           string
@@ -23,12 +24,13 @@ func Load() (*Config, error) {
 	_ = godotenv.Load()
 
 	return &Config{
-		KafkaBrokers:            getEnv("KAFKA_BROKERS", "localhost:9092"),
+		DatabaseURL:            getEnv("DATABASE_URL", ""),
+		KafkaBrokers:           getEnv("KAFKA_BROKERS", "localhost:9092"),
 		KafkaTopicCheckRequests: getEnv("KAFKA_TOPIC_CHECK_REQUESTS", "sf-check-requests"),
-		KafkaGroupID:            getEnv("KAFKA_GROUP_ID", "agent-checker"),
-		ProjectsDir:             getEnv("PROJECTS_DIR", "/app/projects"),
-		PromptFile:              getEnv("PROMPT_FILE", "/app/prompt.dat"),
-		AgentCmd:                getEnv("AGENT_CMD", "opencode"),
+		KafkaGroupID:           getEnv("KAFKA_GROUP_ID", "agent-checker"),
+		ProjectsDir:            getEnv("PROJECTS_DIR", "/app/projects"),
+		PromptFile:             getEnv("PROMPT_FILE", "/app/prompt.dat"),
+		AgentCmd:               getEnv("AGENT_CMD", "opencode"),
 	}, nil
 }
 

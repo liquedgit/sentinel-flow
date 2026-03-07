@@ -30,15 +30,15 @@ func New(promptFile, agentCmd string) *AgentRunner {
 }
 
 // Run loads the prompt template, substitutes placeholders, and executes the agent CLI.
-func (r *AgentRunner) Run(params RunParams) error {
+func (r *AgentRunner) Run(params RunParams) (string, error) {
 	tmplBytes, err := os.ReadFile(r.promptFile)
 	if err != nil {
-		return fmt.Errorf("read prompt file: %w", err)
+		return "", fmt.Errorf("read prompt file: %w", err)
 	}
 
 	tmpl, err := template.New("prompt").Parse(string(tmplBytes))
 	if err != nil {
-		return fmt.Errorf("parse prompt template: %w", err)
+		return "", fmt.Errorf("parse prompt template: %w", err)
 	}
 
 	// Format prohibited roles for template
@@ -55,24 +55,24 @@ func (r *AgentRunner) Run(params RunParams) error {
 
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, data); err != nil {
-		return fmt.Errorf("render prompt: %w", err)
+		return "", fmt.Errorf("render prompt: %w", err)
 	}
 
 	tmpFile, err := os.CreateTemp("", "agent-checker-prompt-*.txt")
 	if err != nil {
-		return fmt.Errorf("create temp prompt file: %w", err)
+		return "", fmt.Errorf("create temp prompt file: %w", err)
 	}
 	defer os.Remove(tmpFile.Name())
 
 	if _, err := tmpFile.Write(buf.Bytes()); err != nil {
 		tmpFile.Close()
-		return fmt.Errorf("write temp prompt file: %w", err)
+		return "", fmt.Errorf("write temp prompt file: %w", err)
 	}
 	if err := tmpFile.Close(); err != nil {
-		return fmt.Errorf("close temp prompt file: %w", err)
+		return "", fmt.Errorf("close temp prompt file: %w", err)
 	}
 
-	userPrompt := "Perform a security review of the API endpoint. Analyze the codebase for broken access control (RBAC) and report findings."
+	userPrompt := "Perform the security review in the prompt file. Reply with ONLY one JSON object (no markdown, no extra text). Required keys: description, short_description, impact, recommendation_fix, is_violation (boolean). Use the examples in the prompt for the exact shape."
 
 	// Run from project directory; agent CLI expects to be in project context
 	cmd := exec.Command(r.agentCmd, "run", "--file", tmpFile.Name(), "--message", userPrompt)
@@ -88,11 +88,11 @@ func (r *AgentRunner) Run(params RunParams) error {
 
 	if err := cmd.Run(); err != nil {
 		slog.Error("agent run failed", "error", err, "stderr", stderr.String())
-		return fmt.Errorf("agent execution: %w", err)
+		return "", fmt.Errorf("agent execution: %w", err)
 	}
 
 	if stdout.Len() > 0 {
 		slog.Info("agent output", "stdout", stdout.String())
 	}
-	return nil
+	return stdout.String(), nil
 }

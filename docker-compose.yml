@@ -112,7 +112,10 @@ services:
     depends_on:
       kafka:
         condition: service_started
+      postgres:
+        condition: service_healthy
     environment:
+      DATABASE_URL: postgres://sentinel:sentinel@postgres:5432/sentinel_flow
       KAFKA_BROKERS: kafka:9092
       KAFKA_TOPIC_CHECK_REQUESTS: sf-check-requests
       KAFKA_GROUP_ID: ai-agent-checker
