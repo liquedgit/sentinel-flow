@@ -28,8 +28,8 @@ export type GraphNode = {
 };
 
 export type GraphLink = {
-    source: string;
-    target: string;
+    source: string | GraphNode;
+    target: string | GraphNode;
 };
 
 export type AuthorizationGraphData = {
@@ -49,8 +49,19 @@ function getCurrentRolesForEndpoint(
     endpointId: string
 ): string[] {
     return graphData.links
-        .filter((link) => link.source === endpointId)
-        .map((link) => link.target);
+        .filter((link) => {
+            // react-force-graph-2d mutates links, converting source/target from strings to objects
+            const sourceId = typeof link.source === "string"
+                ? link.source
+                : link.source.id;
+            return sourceId === endpointId;
+        })
+        .map((link) => {
+            // Handle both string and object target
+            return typeof link.target === "string"
+                ? link.target
+                : link.target.id;
+        });
 }
 
 export default function DetailNodeSheet({
