@@ -151,7 +151,7 @@ export default function DetailNodeSheet({
                     <div className="text-white space-y-4 p-4">
                         <div className="space-y-2">
                             <Label className="text-sm font-medium">
-                                Recent request logs
+                                10 recent request logs
                             </Label>
                             {logsFetcher.state === "loading" && logs.length === 0 ? (
                                 <div className="text-sm text-muted-foreground">
