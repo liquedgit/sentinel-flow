@@ -3,10 +3,29 @@ You are a security reviewer. A broken access control (RBAC) violation was detect
 - Method: {{.Method}}
 - Prohibited roles (roles that should NOT access this endpoint): {{.ProhibitedRoles}}
 
-Analyze the codebase to:
+Task — Analyze the codebase and output your conclusion as a single JSON object:
 1. Locate the handler/controller for this endpoint (HTTP {{.Method}})
 2. Verify if role-based access control is enforced (e.g. middleware, decorators, guards)
 3. Identify any missing authorization checks, insecure defaults, or IDOR risks
-4. Report findings in a structured format: [FINDING|LOCATION|SEVERITY|RECOMMENDATION]
+4. Set is_violation to true only if a real RBAC violation exists; false if access control is correctly enforced or the finding is inconclusive.
 
 Focus on OWASP A01:2021 Broken Access Control. Be concise and actionable.
+
+Constraints:
+- Output ONLY one valid JSON object. No markdown, no ``` code fences, no explanations, no text before or after the JSON.
+- For optional fields you can use null or omit the key. short_description must be at most 500 characters.
+
+Output format — use exactly these keys and types:
+{
+  "description": "string (full analysis, optional)",
+  "short_description": "string (max 500 chars, optional)",
+  "impact": "string (optional)",
+  "recommendation_fix": "string (optional)",
+  "is_violation": boolean
+}
+
+Example when a violation is found:
+{"description":"The admin route lacks an auth guard; any user can call POST /admin/users.","short_description":"Missing auth guard on admin endpoint.","impact":"Any role can create users; privilege escalation.","recommendation_fix":"Add @require_role('admin') or equivalent before the handler.","is_violation":true}
+
+Example when no violation (or inconclusive):
+{"description":"Endpoint is protected by require_admin middleware; prohibited role cannot reach handler.","short_description":"Access control enforced.","impact":null,"recommendation_fix":null,"is_violation":false}
