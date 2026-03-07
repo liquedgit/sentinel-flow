@@ -20,7 +20,7 @@ import {
 } from "./ui/dropdown-menu";
 import { useFetcher, useRevalidator } from "react-router";
 import type { RequestLog } from "@/generated/prisma/client";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown, X, Loader2 } from "lucide-react";
 
 export type GraphNode = {
     id: string;
@@ -90,6 +90,7 @@ export default function DetailNodeSheet({
     }, [actionFetcher.data]);
 
     const logs = logsFetcher.data?.logs ?? [];
+    const isSavingRoles = actionFetcher.state === "submitting" || revalidator.state === "loading";
     const isEndpoint = selectedNode?.type === "endpoint";
     const currentRoles = isEndpoint && selectedNode
         ? getCurrentRolesForEndpoint(graphData, selectedNode.id)
@@ -149,6 +150,71 @@ export default function DetailNodeSheet({
 
                 <ScrollArea className="flex-1 overflow-y-auto">
                     <div className="text-white space-y-4 p-4">
+                        {isEndpoint && selectedNode && (
+                            <div className="space-y-2">
+                                <Label className="text-sm font-medium">
+                                    Roles for this endpoint
+                                </Label>
+                                {isSavingRoles && (
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Loader2 className="size-4 animate-spin" />
+                                        <span>Saving changes...</span>
+                                    </div>
+                                )}
+                                <div className="flex flex-wrap gap-2">
+                                    {currentRoles.map((role) => (
+                                        <div
+                                            key={role}
+                                            className="inline-flex items-center gap-1 bg-primary px-2 py-1 rounded-md border border-primary"
+                                        >
+                                            <InlineCode>{role}</InlineCode>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
+                                                onClick={() => handleRemoveRole(role)}
+                                                disabled={isSavingRoles}
+                                            >
+                                                <X className="size-3" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                    {currentRoles.length === 0 && (
+                                        <div className="text-sm text-muted-foreground">
+                                            No roles assigned.
+                                        </div>
+                                    )}
+                                </div>
+                                {availableRoles.length > 0 && (
+                                    <div className="pt-2">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="gap-1"
+                                                    disabled={isSavingRoles}
+                                                >
+                                                    Add role
+                                                    <ChevronDown className="size-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="start" className="bg-primary text-white">
+                                                {availableRoles.map((role) => (
+                                                    <DropdownMenuItem
+                                                        key={role}
+                                                        onSelect={() => handleAddRole(role)}
+                                                    >
+                                                        {role}
+                                                    </DropdownMenuItem>
+                                                ))}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         <div className="space-y-2">
                             <Label className="text-sm font-medium">
                                 10 recent request logs
@@ -190,65 +256,6 @@ export default function DetailNodeSheet({
                                 </div>
                             )}
                         </div>
-
-                        {isEndpoint && selectedNode && (
-                            <div className="space-y-2">
-                                <Label className="text-sm font-medium">
-                                    Roles for this endpoint
-                                </Label>
-                                <div className="flex flex-wrap gap-2">
-                                    {currentRoles.map((role) => (
-                                        <div
-                                            key={role}
-                                            className="inline-flex items-center gap-1 bg-primary px-2 py-1 rounded-md border border-primary"
-                                        >
-                                            <InlineCode>{role}</InlineCode>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
-                                                onClick={() => handleRemoveRole(role)}
-                                                disabled={actionFetcher.state !== "idle"}
-                                            >
-                                                <X className="size-3" />
-                                            </Button>
-                                        </div>
-                                    ))}
-                                    {currentRoles.length === 0 && (
-                                        <div className="text-sm text-muted-foreground">
-                                            No roles assigned.
-                                        </div>
-                                    )}
-                                </div>
-                                {availableRoles.length > 0 && (
-                                    <div className="pt-2">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="gap-1"
-                                                    disabled={actionFetcher.state !== "idle"}
-                                                >
-                                                    Add role
-                                                    <ChevronDown className="size-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="start" className="text-white">
-                                                {availableRoles.map((role) => (
-                                                    <DropdownMenuItem
-                                                        key={role}
-                                                        onSelect={() => handleAddRole(role)}
-                                                    >
-                                                        {role}
-                                                    </DropdownMenuItem>
-                                                ))}
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </div>
-                                )}
-                            </div>
-                        )}
                     </div>
                 </ScrollArea>
             </SheetContent>
