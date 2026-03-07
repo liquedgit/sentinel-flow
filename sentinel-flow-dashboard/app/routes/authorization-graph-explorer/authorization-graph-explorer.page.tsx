@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
 import { data, useLoaderData } from "react-router";
-import type { Route } from "./+types/authorization-graph-explorer.page";
 import {
     getEndpointRoleMappingsService,
     getDistinctRoles,
@@ -10,7 +9,8 @@ import DetailNodeSheet, {
     type GraphNode,
     type AuthorizationGraphData,
 } from "~/components/detail.node.sheet";
-import ForceGraph2D from "react-force-graph-2d";
+import { ClientForceGraph } from "~/components/client-force-graph";
+import type { Route } from "../+types/layout";
 
 function buildGraphData(
     mappings: { normalizedPath: string; allowedRole: string }[]
@@ -94,7 +94,7 @@ export default function AuthorizationGraphExplorerPage() {
     const { graphData, distinctRoles } = useLoaderData<typeof loader>();
     const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
 
-    const handleNodeClick = useCallback((node: { id?: string; type?: string }) => {
+    const handleNodeClick = useCallback((node: { id?: string; type?: string }, _event: MouseEvent) => {
         if (node.id && (node.type === "endpoint" || node.type === "role")) {
             setSelectedNode({
                 id: node.id,
@@ -103,26 +103,12 @@ export default function AuthorizationGraphExplorerPage() {
         }
     }, []);
 
-    const graphDataForLib = {
-        nodes: graphData.nodes,
-        links: graphData.links,
-    };
-
     return (
         <div className="flex flex-1 h-full min-h-0 p-4">
             <div className="flex-1 min-w-0 rounded-md border border-primary overflow-hidden bg-primary-foreground">
-                <ForceGraph2D
-                    graphData={graphDataForLib}
-                    nodeId="id"
-                    nodeLabel={(node) => String((node as GraphNode).id)}
-                    nodeColor={(node) =>
-                        (node as GraphNode).type === "endpoint"
-                            ? "#137fec"
-                            : "#10b981"
-                    }
+                <ClientForceGraph
+                    graphData={graphData}
                     onNodeClick={handleNodeClick}
-                    linkDirectionalArrowLength={3.5}
-                    linkDirectionalArrowRelPos={1}
                 />
             </div>
             <DetailNodeSheet

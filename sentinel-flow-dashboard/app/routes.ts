@@ -11,7 +11,6 @@ export default [
         route("authorization-graph-explorer", BASE_PATH + "/authorization-graph-explorer/authorization-graph-explorer.page.tsx"),
         route("authorization-graph-explorer/request-logs", BASE_PATH + "/authorization-graph-explorer/request-logs.resource.ts"),
         route("findings", BASE_PATH + "/findings/findings.page.tsx"),
-        route("authorization-graph-explorer", BASE_PATH + "/authorization-graph-explorer/authorization-graph-explorer.page.tsx"),
         route("learn-mappping", BASE_PATH + "/learn-mapping/learn-mapping.page.tsx"),
         route("agents", BASE_PATH + "/agents/agents.page.tsx"),
         route("agents/:id", BASE_PATH + "/agents/agents.$id.ts")
