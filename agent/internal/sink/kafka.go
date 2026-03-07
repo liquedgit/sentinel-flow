@@ -3,16 +3,16 @@ package sink
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"log"
-	"sentinelflow/agent/internal/events"
 	"time"
 
 	"github.com/segmentio/kafka-go"
+
+	"sentinelflow/agent/internal/events"
 )
 
-var ErrQueueFull = errors.New("event queue full")
-
+// KafkaSink is kept for internal Dashboard-side use.
+// The agent itself uses DashboardSink and never connects to Kafka directly.
 type KafkaSink struct {
 	writer *kafka.Writer
 	ch     chan events.RequestEvent
@@ -37,6 +37,7 @@ func NewKafkaSink(brokers []string, topic string) *KafkaSink {
 				log.Println("[Kafka] marshal error:", err)
 				continue
 			}
+
 			var key string
 			if event.User != nil {
 				key = event.User.UserId + " | " + event.User.Role + " | "
@@ -44,20 +45,16 @@ func NewKafkaSink(brokers []string, topic string) *KafkaSink {
 			key += event.TraceID
 
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			msg := kafka.Message{
+			err = sink.writer.WriteMessages(ctx, kafka.Message{
 				Key:   []byte(key),
 				Value: payload,
-			}
-			err = sink.writer.WriteMessages(ctx, msg)
-
+			})
 			cancel()
 
 			if err != nil {
 				log.Println("[Kafka] write error:", err)
 			} else {
-				log.Printf(
-					"[Kafka] write success",
-				)
+				log.Println("[Kafka] write success")
 			}
 		}
 	}()
@@ -65,16 +62,12 @@ func NewKafkaSink(brokers []string, topic string) *KafkaSink {
 	return sink
 }
 
-func (k *KafkaSink) Publish(ctx context.Context, event events.RequestEvent) error {
+func (k *KafkaSink) Publish(_ context.Context, event events.RequestEvent) error {
 	select {
-	case <-ctx.Done():
-		return ctx.Err()
-
 	case k.ch <- event:
 		return nil
-
 	default:
-		return ErrQueueFull // fail-open, never block traffic
+		return ErrQueueFull
 	}
 }
 
