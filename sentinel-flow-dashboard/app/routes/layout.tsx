@@ -14,6 +14,7 @@ import {
   Users,
   Settings,
   BookText,
+  ScanSearch,
 } from "lucide-react";
 import { getEndpointRoleMappingsService } from "~/.server/services/endpoint.role.mappings.service";
 
@@ -60,6 +61,11 @@ const sidebarItems: SidebarItem[] = [
     label: "Findings",
     icon: Bug,
     href: "/findings",
+  },
+  {
+    label: "AI Checker",
+    icon: ScanSearch,
+    href: "/ai-checker",
   },
   {
     label: "Agents",
