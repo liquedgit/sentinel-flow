@@ -1,4 +1,5 @@
-import type { Prisma, Violation } from "@/generated/prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
+import type { ViolationWithRequestLogAndAIChecker } from "~/.server/services/violation.service";
 import {
   Sheet,
   SheetContent,
@@ -20,18 +21,34 @@ export type ViolationWithRequestLog = Prisma.ViolationGetPayload<{
   include: { requestLog: true };
 }>;
 
+export type ViolationForSheet = ViolationWithRequestLog | ViolationWithRequestLogAndAIChecker;
+
+export type AICheckerRequestClient = {
+  id: string;
+  status: string;
+  description?: string | null;
+  shortDescription?: string | null;
+  impact?: string | null;
+  recommendationFix?: string | null;
+  isViolation?: boolean | null;
+};
+
 export default function DetailFindingsSheet({
   selected,
   setSelected,
   deepCodeAnalysisResponse,
+  aiCheckerRequest = null,
+  canRequestDeepAnalysis = true,
   onRequestDeepAnalysis,
   isRequestingDeepAnalysis = false,
   deepAnalysisError = null,
 }: {
-  selected: ViolationWithRequestLog | null;
-  setSelected: (selected: ViolationWithRequestLog | null) => void;
+  selected: ViolationForSheet | null;
+  setSelected: (selected: ViolationForSheet | null) => void;
   deepCodeAnalysisResponse: string | null;
-  onRequestDeepAnalysis?: (violation: ViolationWithRequestLog) => void;
+  aiCheckerRequest?: AICheckerRequestClient | null;
+  canRequestDeepAnalysis?: boolean;
+  onRequestDeepAnalysis?: (violation: ViolationForSheet) => void;
   isRequestingDeepAnalysis?: boolean;
   deepAnalysisError?: string | null;
 }) {
@@ -103,7 +120,7 @@ export default function DetailFindingsSheet({
 
             {/* Deep Code Analysis Response */}
 
-            {deepCodeAnalysisResponse !== null && (
+            {aiCheckerRequest?.status === "running" && (
               <div className="px-4">
                 <div className="bg-light-blue border border-active-primary p-3 rounded-md">
                   <div className="text-sm font-medium flex space-x-2 text-active-primary">
@@ -111,7 +128,35 @@ export default function DetailFindingsSheet({
                     <div>Deep Code Analysis Response</div>
                   </div>
                   <div className="text-sm text-gray-200">
-                    {deepCodeAnalysisResponse}
+                    Analysis in progress...
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {(aiCheckerRequest?.status === "complete" ||
+              deepCodeAnalysisResponse !== null) && (
+              <div className="px-4">
+                <div className="bg-light-blue border border-active-primary p-3 rounded-md">
+                  <div className="text-sm font-medium flex space-x-2 text-active-primary">
+                    <Sparkles className="size-4" />
+                    <div>Deep Code Analysis Response</div>
+                  </div>
+                  <div className="text-sm text-gray-200 space-y-2">
+                    {aiCheckerRequest?.status === "complete" ? (
+                      <>
+                        {aiCheckerRequest.description != null &&
+                          aiCheckerRequest.description !== "" && (
+                            <p>{aiCheckerRequest.description}</p>
+                          )}
+                        {aiCheckerRequest.shortDescription != null &&
+                          aiCheckerRequest.shortDescription !== "" && (
+                            <p>{aiCheckerRequest.shortDescription}</p>
+                          )}
+                      </>
+                    ) : (
+                      <p>{deepCodeAnalysisResponse}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -160,34 +205,59 @@ export default function DetailFindingsSheet({
 
                   <div>
                     <h4 className="font-medium text-sm text-gray-400 mb-1">
-                      Security Risk:
+                      {aiCheckerRequest?.status === "complete" &&
+                      aiCheckerRequest.impact != null
+                        ? "Impact:"
+                        : "Security Risk:"}
                     </h4>
-                    <ul className="list-disc list-inside text-sm space-y-1">
-                      <li>Potential Vertical IDOR (Privilege Escalation)</li>
-                      <li>Unauthorized role accessing privileged resources</li>
-                      <li>Role-based access control (RBAC) bypass attempt</li>
-                      <li>
-                        Critical admin/privileged functions may be exposed
-                      </li>
-                    </ul>
+                    {aiCheckerRequest?.status === "complete" &&
+                    aiCheckerRequest.impact != null &&
+                    aiCheckerRequest.impact !== "" ? (
+                      <div className="text-sm whitespace-pre-wrap">
+                        {aiCheckerRequest.impact.split("\n").map((line, i) => (
+                          <p key={i}>{line || " "}</p>
+                        ))}
+                      </div>
+                    ) : (
+                      <ul className="list-disc list-inside text-sm space-y-1">
+                        <li>Potential Vertical IDOR (Privilege Escalation)</li>
+                        <li>Unauthorized role accessing privileged resources</li>
+                        <li>Role-based access control (RBAC) bypass attempt</li>
+                        <li>
+                          Critical admin/privileged functions may be exposed
+                        </li>
+                      </ul>
+                    )}
                   </div>
 
                   <div>
                     <h4 className="font-medium text-sm text-gray-400 mb-1">
                       Recommended Actions:
                     </h4>
-                    <ul className="list-disc list-inside text-sm space-y-1">
-                      <li>
-                        Verify role assignment for user{" "}
-                        <InlineCode children={selected?.userId} />
-                      </li>
-                      <li>Review RBAC implementation on this endpoint</li>
-                      <li>Check if role permissions were recently modified</li>
-                      <li>
-                        Audit all endpoints accessed by this role in last 24h
-                      </li>
-                      <li>Consider implementing stricter role validation</li>
-                    </ul>
+                    {aiCheckerRequest?.status === "complete" &&
+                    aiCheckerRequest.recommendationFix != null &&
+                    aiCheckerRequest.recommendationFix !== "" ? (
+                      <div className="text-sm whitespace-pre-wrap">
+                        {aiCheckerRequest.recommendationFix
+                          .split("\n")
+                          .map((line, i) => (
+                            <p key={i}>{line || " "}</p>
+                          ))}
+                      </div>
+                    ) : (
+                      <ul className="list-disc list-inside text-sm space-y-1">
+                        <li>
+                          Verify role assignment for user{" "}
+                          <InlineCode children={selected?.userId} />
+                        </li>
+                        <li>Review RBAC implementation on this endpoint</li>
+                        <li>Check if role permissions were recently modified</li>
+                        <li>
+                          Audit all endpoints accessed by this role in last 24h
+                        </li>
+                        <li>Consider implementing stricter role validation</li>
+                      </ul>
+                    )}
                   </div>
                 </>
               )}
@@ -228,38 +298,65 @@ export default function DetailFindingsSheet({
 
                     <div>
                       <h4 className="font-medium text-sm text-gray-400 mb-1">
-                        Security Risk:
+                        {aiCheckerRequest?.status === "complete" &&
+                        aiCheckerRequest.impact != null
+                          ? "Impact:"
+                          : "Security Risk:"}
                       </h4>
-                      <ul className="list-disc list-inside text-sm space-y-1">
-                        <li>
-                          Potential Horizontal IDOR (Insecure Direct Object
-                          Reference)
-                        </li>
-                        <li>
-                          Unauthorized user accessing another user's resource
-                        </li>
-                        <li>Possible privilege escalation attempt</li>
-                      </ul>
+                      {aiCheckerRequest?.status === "complete" &&
+                      aiCheckerRequest.impact != null &&
+                      aiCheckerRequest.impact !== "" ? (
+                        <div className="text-sm whitespace-pre-wrap">
+                          {aiCheckerRequest.impact
+                            .split("\n")
+                            .map((line, i) => (
+                              <p key={i}>{line || " "}</p>
+                            ))}
+                        </div>
+                      ) : (
+                        <ul className="list-disc list-inside text-sm space-y-1">
+                          <li>
+                            Potential Horizontal IDOR (Insecure Direct Object
+                            Reference)
+                          </li>
+                          <li>
+                            Unauthorized user accessing another user's resource
+                          </li>
+                          <li>Possible privilege escalation attempt</li>
+                        </ul>
+                      )}
                     </div>
 
                     <div>
                       <h4 className="font-medium text-sm text-gray-400 mb-1">
                         Recommended Actions:
                       </h4>
-                      <ul className="list-disc list-inside text-sm space-y-1">
-                        <li>
-                          Verify if user{" "}
-                          <InlineCode children={selected?.userId} /> has
-                          legitimate access to this resource
-                        </li>
-                        <li>Check authorization logic on this endpoint</li>
-                        <li>
-                          Review recent access logs for suspicious activity
-                        </li>
-                        <li>
-                          Consider implementing additional access controls
-                        </li>
-                      </ul>
+                      {aiCheckerRequest?.status === "complete" &&
+                      aiCheckerRequest.recommendationFix != null &&
+                      aiCheckerRequest.recommendationFix !== "" ? (
+                        <div className="text-sm whitespace-pre-wrap">
+                          {aiCheckerRequest.recommendationFix
+                            .split("\n")
+                            .map((line, i) => (
+                              <p key={i}>{line || " "}</p>
+                            ))}
+                        </div>
+                      ) : (
+                        <ul className="list-disc list-inside text-sm space-y-1">
+                          <li>
+                            Verify if user{" "}
+                            <InlineCode children={selected?.userId} /> has
+                            legitimate access to this resource
+                          </li>
+                          <li>Check authorization logic on this endpoint</li>
+                          <li>
+                            Review recent access logs for suspicious activity
+                          </li>
+                          <li>
+                            Consider implementing additional access controls
+                          </li>
+                        </ul>
+                      )}
                     </div>
                   </div>
                 </>
@@ -283,29 +380,40 @@ export default function DetailFindingsSheet({
                   Mark as Expected
                 </Button>
               </div>
-              {deepCodeAnalysisResponse === null && (
-                <div className="flex flex-col items-center justify-center w-full text-white gap-2">
-                  {deepAnalysisError && (
-                    <div className="text-sm text-destructive">{deepAnalysisError}</div>
-                  )}
-                  <Button
-                    className="border-active-primary border text-active-primary bg-primary-foreground hover:bg-light-blue"
-                    disabled={
-                      !selected ||
-                      !onRequestDeepAnalysis ||
-                      isRequestingDeepAnalysis
-                    }
-                    onClick={() =>
-                      selected && onRequestDeepAnalysis?.(selected)
-                    }
-                  >
-                    <Sparkles className="size-4" />
-                    {isRequestingDeepAnalysis
-                      ? "Requesting..."
-                      : "Deep Code Analysis with AI"}
-                  </Button>
-                </div>
-              )}
+              {deepCodeAnalysisResponse === null &&
+                aiCheckerRequest?.status !== "complete" && (
+                  <div className="flex flex-col items-center justify-center w-full text-white gap-2">
+                    {deepAnalysisError && (
+                      <div className="text-sm text-destructive">
+                        {deepAnalysisError}
+                      </div>
+                    )}
+                    <Button
+                      className="border-active-primary border text-active-primary bg-primary-foreground hover:bg-light-blue"
+                      disabled={
+                        !selected ||
+                        !onRequestDeepAnalysis ||
+                        isRequestingDeepAnalysis ||
+                        !canRequestDeepAnalysis
+                      }
+                      onClick={() =>
+                        selected && onRequestDeepAnalysis?.(selected)
+                      }
+                      title={
+                        !canRequestDeepAnalysis
+                          ? "Analysis already in progress or completed"
+                          : undefined
+                      }
+                    >
+                      <Sparkles className="size-4" />
+                      {isRequestingDeepAnalysis
+                        ? "Requesting..."
+                        : aiCheckerRequest?.status === "failed"
+                          ? "Request again"
+                          : "Deep Code Analysis with AI"}
+                    </Button>
+                  </div>
+                )}
             </div>
           </SheetFooter>
         </div>

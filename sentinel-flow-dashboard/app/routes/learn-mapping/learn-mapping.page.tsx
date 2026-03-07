@@ -22,33 +22,6 @@ import { data, useLoaderData } from "react-router";
 
 export async function loader() {
   const violations = await getViolations();
-  const violation_mock: ViolationWithRequestLogClientType = {
-    id: 1,
-    timestamp: new Date(),
-    normalizedPath: "/api/v1/admin/user-management/users",
-    userId: "test",
-    role: "test",
-    expectedRoles: [],
-    status: "test",
-    resolvedById: "test",
-    resolvedAt: new Date(),
-    createdAt: new Date(),
-    requestLogId: BigInt(1),
-    requestLog: {
-      id: BigInt(1),
-      timestamp: new Date(),
-      normalizedPath: "/api/v1/admin/user-management/users",
-      userId: "test",
-      role: "test",
-      status: 200,
-      createdAt: new Date(),
-      method: "POST",
-      path: "/api/v1/admin/user-management/users",
-      clientIp: "127.0.0.1",
-      traceId: "1234567890",
-    },
-  };
-  violations.push(violation_mock);
   return data(violations, { status: 200 });
 }
 
