@@ -1,8 +1,22 @@
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "../libs/prisma";
 import { produceCheckRequest } from "../libs/kafka";
 import { getViolationById } from "./violation.service";
 
 const PROJECT_NAME = "example_project";
+
+export type AICheckerRequestWithViolation = Prisma.AICheckerRequestGetPayload<{
+  include: { violation: true };
+}>;
+
+export async function getAICheckerRequests(): Promise<
+  AICheckerRequestWithViolation[]
+> {
+  return prisma.aICheckerRequest.findMany({
+    include: { violation: true },
+    orderBy: { createdAt: "desc" },
+  });
+}
 
 export async function createAICheckerRequest(violationId: number): Promise<{
   id: string;
