@@ -1,9 +1,16 @@
-import type { Prisma, Violation } from "@/generated/prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "../libs/prisma";
 
 export type ViolationWithRequestLog =
     Prisma.ViolationGetPayload<{ include: { requestLog: true } }>;
 
+export type ViolationWithRequestLogAndAIChecker =
+    Prisma.ViolationGetPayload<{
+        include: {
+            requestLog: true;
+            aiCheckerRequests: true;
+        };
+    }>;
 
 export async function getViolations(): Promise<ViolationWithRequestLog[]> {
     return await prisma.violation.findMany({
@@ -12,6 +19,20 @@ export async function getViolations(): Promise<ViolationWithRequestLog[]> {
         },
         include: {
             requestLog: true
+        },
+    });
+}
+
+export async function getViolationsWithAIChecker(): Promise<ViolationWithRequestLogAndAIChecker[]> {
+    return await prisma.violation.findMany({
+        orderBy: {
+            createdAt: "desc",
+        },
+        include: {
+            requestLog: true,
+            aiCheckerRequests: {
+                orderBy: { createdAt: "desc" },
+            },
         },
     });
 }

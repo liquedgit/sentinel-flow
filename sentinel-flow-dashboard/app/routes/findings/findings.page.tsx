@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { data, useLoaderData, useFetcher } from "react-router";
-import { getViolations } from "~/.server/services/violation.service";
+import { getViolationsWithAIChecker } from "~/.server/services/violation.service";
 import { createAICheckerRequest } from "~/.server/services/ai-checker-request.service";
 import DetailFindingsSheet from "~/components/detail.findings.sheet";
 import { Input } from "~/components/ui/input";
@@ -12,7 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import type { ViolationWithRequestLog as ViolationWithRequestLogClientType } from "~/components/detail.findings.sheet";
+import type { ViolationWithRequestLogAndAIChecker } from "~/.server/services/violation.service";
+import type { ViolationForSheet } from "~/components/detail.findings.sheet";
 
 export async function action({ request }: { request: Request }) {
   if (request.method !== "POST") {
@@ -44,44 +45,23 @@ export async function action({ request }: { request: Request }) {
 }
 
 export async function loader() {
-  const violations = await getViolations();
-  const violation_mock: ViolationWithRequestLogClientType = {
-    id: 1,
-    timestamp: new Date(),
-    normalizedPath: "/api/v1/admin/user-management/users",
-    userId: "test",
-    role: "test",
-    expectedRoles: [],
-    status: "test",
-    resolvedById: "test",
-    resolvedAt: new Date(),
-    createdAt: new Date(),
-    requestLogId: BigInt(1),
-    requestLog: {
-      id: BigInt(1),
-      timestamp: new Date(),
-      normalizedPath: "/api/v1/admin/user-management/users",
-      userId: "test",
-      role: "test",
-      status: 200,
-      createdAt: new Date(),
-      method: "POST",
-      path: "/api/v1/admin/user-management/users",
-      clientIp: "127.0.0.1",
-      traceId: "1234567890",
-    },
-  };
-  violations.push(violation_mock);
+  const violations = await getViolationsWithAIChecker();
   return data(violations, { status: 200 });
 }
 
 export default function FindingsPage() {
   const violations = useLoaderData<typeof loader>();
-  const [selected, setSelected] =
-    useState<ViolationWithRequestLogClientType | null>(null);
+  const [selected, setSelected] = useState<ViolationForSheet | null>(null);
   const fetcher = useFetcher<typeof action>();
 
-  const handleRequestDeepAnalysis = (violation: ViolationWithRequestLogClientType) => {
+  const currentRequest =
+    selected && "aiCheckerRequests" in selected
+      ? selected.aiCheckerRequests?.[0] ?? null
+      : null;
+  const canRequestDeepAnalysis =
+    currentRequest == null || currentRequest.status === "failed";
+
+  const handleRequestDeepAnalysis = (violation: ViolationForSheet) => {
     fetcher.submit(
       { violationId: String(violation.id) },
       { method: "POST", action: "/findings" }
@@ -141,6 +121,8 @@ export default function FindingsPage() {
         selected={selected}
         setSelected={setSelected}
         deepCodeAnalysisResponse={null}
+        aiCheckerRequest={currentRequest}
+        canRequestDeepAnalysis={canRequestDeepAnalysis}
         onRequestDeepAnalysis={handleRequestDeepAnalysis}
         isRequestingDeepAnalysis={fetcher.state === "submitting"}
         deepAnalysisError={
