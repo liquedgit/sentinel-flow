@@ -132,7 +132,6 @@ export default function LearnMappingPage() {
         <DetailFindingsSheet
           selected={selected}
           setSelected={setSelected}
-          deepCodeAnalysisResponse={"Hallo"}
         />
       </div>
     </>

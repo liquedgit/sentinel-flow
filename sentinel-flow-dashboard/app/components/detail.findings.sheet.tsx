@@ -36,7 +36,6 @@ export type AICheckerRequestClient = {
 export default function DetailFindingsSheet({
   selected,
   setSelected,
-  deepCodeAnalysisResponse,
   aiCheckerRequest = null,
   canRequestDeepAnalysis = true,
   onRequestDeepAnalysis,
@@ -45,7 +44,6 @@ export default function DetailFindingsSheet({
 }: {
   selected: ViolationForSheet | null;
   setSelected: (selected: ViolationForSheet | null) => void;
-  deepCodeAnalysisResponse: string | null;
   aiCheckerRequest?: AICheckerRequestClient | null;
   canRequestDeepAnalysis?: boolean;
   onRequestDeepAnalysis?: (violation: ViolationForSheet) => void;
@@ -134,8 +132,7 @@ export default function DetailFindingsSheet({
               </div>
             )}
 
-            {(aiCheckerRequest?.status === "complete" ||
-              deepCodeAnalysisResponse !== null) && (
+            {aiCheckerRequest?.status === "complete" && (
               <div className="px-4">
                 <div className="bg-light-blue border border-active-primary p-3 rounded-md">
                   <div className="text-sm font-medium flex space-x-2 text-active-primary">
@@ -143,20 +140,14 @@ export default function DetailFindingsSheet({
                     <div>Deep Code Analysis Response</div>
                   </div>
                   <div className="text-sm text-gray-200 space-y-2">
-                    {aiCheckerRequest?.status === "complete" ? (
-                      <>
-                        {aiCheckerRequest.description != null &&
-                          aiCheckerRequest.description !== "" && (
-                            <p>{aiCheckerRequest.description}</p>
-                          )}
-                        {aiCheckerRequest.shortDescription != null &&
-                          aiCheckerRequest.shortDescription !== "" && (
-                            <p>{aiCheckerRequest.shortDescription}</p>
-                          )}
-                      </>
-                    ) : (
-                      <p>{deepCodeAnalysisResponse}</p>
-                    )}
+                    {aiCheckerRequest.description != null &&
+                      aiCheckerRequest.description !== "" && (
+                        <p>{aiCheckerRequest.description}</p>
+                      )}
+                    {aiCheckerRequest.shortDescription != null &&
+                      aiCheckerRequest.shortDescription !== "" && (
+                        <p>{aiCheckerRequest.shortDescription}</p>
+                      )}
                   </div>
                 </div>
               </div>
@@ -380,8 +371,7 @@ export default function DetailFindingsSheet({
                   Mark as Expected
                 </Button>
               </div>
-              {deepCodeAnalysisResponse === null &&
-                aiCheckerRequest?.status !== "complete" && (
+              {aiCheckerRequest?.status !== "complete" && (
                   <div className="flex flex-col items-center justify-center w-full text-white gap-2">
                     {deepAnalysisError && (
                       <div className="text-sm text-destructive">

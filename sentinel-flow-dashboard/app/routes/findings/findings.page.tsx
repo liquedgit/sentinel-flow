@@ -120,7 +120,6 @@ export default function FindingsPage() {
       <DetailFindingsSheet
         selected={selected}
         setSelected={setSelected}
-        deepCodeAnalysisResponse={null}
         aiCheckerRequest={currentRequest}
         canRequestDeepAnalysis={canRequestDeepAnalysis}
         onRequestDeepAnalysis={handleRequestDeepAnalysis}
