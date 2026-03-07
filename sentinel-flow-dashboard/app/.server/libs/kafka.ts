@@ -1,6 +1,7 @@
 import { Kafka } from "kafkajs";
 import type { Producer } from "kafkajs";
 import { kafkaConfig } from "../config/kafka.config";
+import type { AccessEventPayload } from "~/routes/agents/agents.api.events";
 
 let producer: Producer | null = null;
 
@@ -22,6 +23,31 @@ export type CheckRequestPayload = {
   endpoint: string;
   prohibited_roles: string[];
 };
+
+
+
+export async function produceAccessEvent(
+  payload: AccessEventPayload,
+  agentId: string
+): Promise<void> {
+  const prod = await getProducer();
+  await prod.connect();
+  try {
+    await prod.send({
+      topic: kafkaConfig.topicAccessEvents,
+      messages: [
+        {
+
+          key: `${agentId}:${payload.user_attr?.user_id}:${payload.user_attr?.role}:${payload.trace_id}`,
+          value: JSON.stringify(payload),
+        },
+      ],
+    })
+  } finally {
+    await prod.disconnect();
+  }
+
+}
 
 export async function produceCheckRequest(
   payload: CheckRequestPayload

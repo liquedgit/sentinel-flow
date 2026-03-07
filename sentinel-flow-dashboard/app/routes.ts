@@ -26,7 +26,8 @@ export default [
 
     ...prefix("api", [
         ...prefix("agents", [
-            route("heartbeat", BASE_PATH + "/agents/agents.api.heartbeat.ts"),
+            route("config", BASE_PATH + "/agents/agents.api.config.ts"),
+            route("events", BASE_PATH + "/agents/agents.api.events.ts"),
         ]),
     ])
 ] satisfies RouteConfig;
