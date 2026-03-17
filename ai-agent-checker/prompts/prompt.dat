@@ -12,20 +12,21 @@ Task — Analyze the codebase and output your conclusion as a single JSON object
 Focus on OWASP A01:2021 Broken Access Control. Be concise and actionable.
 
 Constraints:
-- Output ONLY one valid JSON object. No markdown, no ``` code fences, no explanations, no text before or after the JSON.
+- Output ONLY one valid JSON object. No ``` code fences wrapping the JSON, no explanations, no text before or after the JSON.
 - For optional fields you can use null or omit the key. short_description must be at most 500 characters.
+- The description, impact, and recommendation_fix string values MAY contain basic Markdown for better readability: **bold**, `inline code`, - lists, and newlines. Keep the JSON valid (escape quotes and newlines in strings).
 
 Output format — use exactly these keys and types:
 {
-  "description": "string (full analysis, optional)",
-  "short_description": "string (max 500 chars, optional)",
-  "impact": "string (optional)",
-  "recommendation_fix": "string (optional)",
+  "description": "string (full analysis, optional, may use basic Markdown)",
+  "short_description": "string (max 500 chars, optional, plain text)",
+  "impact": "string (optional, may use basic Markdown)",
+  "recommendation_fix": "string (optional, may use basic Markdown)",
   "is_violation": boolean
 }
 
-Example when a violation is found:
-{"description":"The admin route lacks an auth guard; any user can call POST /admin/users.","short_description":"Missing auth guard on admin endpoint.","impact":"Any role can create users; privilege escalation.","recommendation_fix":"Add @require_role('admin') or equivalent before the handler.","is_violation":true}
+Example when a violation is found (plain text; you may use Markdown for richer output):
+{"description":"The admin route lacks an auth guard; any user can call POST /admin/users.","short_description":"Missing auth guard on admin endpoint.","impact":"Any role can create users; privilege escalation.","recommendation_fix":"Add `@require_role('admin')` or equivalent before the handler.","is_violation":true}
 
 Example when no violation (or inconclusive):
 {"description":"Endpoint is protected by require_admin middleware; prohibited role cannot reach handler.","short_description":"Access control enforced.","impact":null,"recommendation_fix":null,"is_violation":false}

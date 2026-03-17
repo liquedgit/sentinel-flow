@@ -8,6 +8,7 @@ import {
 import { Label } from "./ui/label";
 import { ScrollArea } from "./ui/scroll-area";
 import { Badge } from "./ui/badge";
+import MarkdownText from "./markdown-text";
 import type { AICheckerRequestWithViolation } from "~/.server/services/ai-checker-request.service";
 
 function formatDate(value: string | Date | null | undefined): string {
@@ -94,21 +95,15 @@ export default function DetailAICheckerSheet({
                 </div>
                 <div className="space-y-1">
                   <Label className="text-gray-400">Description</Label>
-                  <p className="text-gray-200 whitespace-pre-wrap">
-                    {selected?.description ?? "—"}
-                  </p>
+                  <MarkdownText content={selected?.description} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-gray-400">Impact</Label>
-                  <p className="text-gray-200 whitespace-pre-wrap">
-                    {selected?.impact ?? "—"}
-                  </p>
+                  <MarkdownText content={selected?.impact} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-gray-400">Recommendation Fix</Label>
-                  <p className="text-gray-200 whitespace-pre-wrap">
-                    {selected?.recommendationFix ?? "—"}
-                  </p>
+                  <MarkdownText content={selected?.recommendationFix} />
                 </div>
               </div>
             </div>

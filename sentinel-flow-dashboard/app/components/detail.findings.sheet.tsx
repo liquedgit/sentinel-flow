@@ -14,6 +14,7 @@ import { Sparkles } from "lucide-react";
 import RequestMethod from "./requestmethod";
 import StatusCode from "./statuscode";
 import InlineCode from "./inlinecode";
+import MarkdownText from "./markdown-text";
 import { ScrollArea } from "./ui/scroll-area";
 import { ViolationType } from "~/lib/violation";
 
@@ -142,7 +143,7 @@ export default function DetailFindingsSheet({
                   <div className="text-sm text-gray-200 space-y-2">
                     {aiCheckerRequest.description != null &&
                       aiCheckerRequest.description !== "" && (
-                        <p>{aiCheckerRequest.description}</p>
+                        <MarkdownText content={aiCheckerRequest.description} />
                       )}
                     {aiCheckerRequest.shortDescription != null &&
                       aiCheckerRequest.shortDescription !== "" && (
@@ -204,11 +205,10 @@ export default function DetailFindingsSheet({
                     {aiCheckerRequest?.status === "complete" &&
                     aiCheckerRequest.impact != null &&
                     aiCheckerRequest.impact !== "" ? (
-                      <div className="text-sm whitespace-pre-wrap">
-                        {aiCheckerRequest.impact.split("\n").map((line, i) => (
-                          <p key={i}>{line || " "}</p>
-                        ))}
-                      </div>
+                      <MarkdownText
+                        content={aiCheckerRequest.impact}
+                        className="text-sm"
+                      />
                     ) : (
                       <ul className="list-disc list-inside text-sm space-y-1">
                         <li>Potential Vertical IDOR (Privilege Escalation)</li>
@@ -228,13 +228,10 @@ export default function DetailFindingsSheet({
                     {aiCheckerRequest?.status === "complete" &&
                     aiCheckerRequest.recommendationFix != null &&
                     aiCheckerRequest.recommendationFix !== "" ? (
-                      <div className="text-sm whitespace-pre-wrap">
-                        {aiCheckerRequest.recommendationFix
-                          .split("\n")
-                          .map((line, i) => (
-                            <p key={i}>{line || " "}</p>
-                          ))}
-                      </div>
+                      <MarkdownText
+                        content={aiCheckerRequest.recommendationFix}
+                        className="text-sm"
+                      />
                     ) : (
                       <ul className="list-disc list-inside text-sm space-y-1">
                         <li>
@@ -297,13 +294,10 @@ export default function DetailFindingsSheet({
                       {aiCheckerRequest?.status === "complete" &&
                       aiCheckerRequest.impact != null &&
                       aiCheckerRequest.impact !== "" ? (
-                        <div className="text-sm whitespace-pre-wrap">
-                          {aiCheckerRequest.impact
-                            .split("\n")
-                            .map((line, i) => (
-                              <p key={i}>{line || " "}</p>
-                            ))}
-                        </div>
+                        <MarkdownText
+                          content={aiCheckerRequest.impact}
+                          className="text-sm"
+                        />
                       ) : (
                         <ul className="list-disc list-inside text-sm space-y-1">
                           <li>
@@ -325,13 +319,10 @@ export default function DetailFindingsSheet({
                       {aiCheckerRequest?.status === "complete" &&
                       aiCheckerRequest.recommendationFix != null &&
                       aiCheckerRequest.recommendationFix !== "" ? (
-                        <div className="text-sm whitespace-pre-wrap">
-                          {aiCheckerRequest.recommendationFix
-                            .split("\n")
-                            .map((line, i) => (
-                              <p key={i}>{line || " "}</p>
-                            ))}
-                        </div>
+                        <MarkdownText
+                          content={aiCheckerRequest.recommendationFix}
+                          className="text-sm"
+                        />
                       ) : (
                         <ul className="list-disc list-inside text-sm space-y-1">
                           <li>

@@ -72,7 +72,7 @@ func (r *AgentRunner) Run(params RunParams) (string, error) {
 		return "", fmt.Errorf("close temp prompt file: %w", err)
 	}
 
-	userPrompt := "Perform the security review in the prompt file. Reply with ONLY one JSON object (no markdown, no extra text). Required keys: description, short_description, impact, recommendation_fix, is_violation (boolean). Use the examples in the prompt for the exact shape."
+	userPrompt := "Perform the security review in the prompt file. Reply with ONLY one JSON object (no code fences, no extra text). Required keys: description, short_description, impact, recommendation_fix, is_violation (boolean). The description, impact, and recommendation_fix string values may contain basic Markdown. Use the examples in the prompt for the exact shape."
 
 	// Run from project directory; agent CLI expects to be in project context
 	cmd := exec.Command(r.agentCmd, "run", "--file", tmpFile.Name(), "--message", userPrompt)
