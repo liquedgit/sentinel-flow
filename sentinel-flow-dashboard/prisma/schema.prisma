@@ -75,6 +75,9 @@ model Violation {
   userId         String?   @map("user_id") @db.VarChar(255)
   role           String?   @db.VarChar(100)
   expectedRoles  Json?     @map("expected_roles")
+  expectedUsers  Json?     @map("expected_users")  // For Horizontal IDOR: owner user IDs
+  resourceId     String?   @map("resource_id")     // For Horizontal IDOR: specific resource accessed
+  violationType  String    @default("vertical_idor") @map("violation_type") @db.VarChar(20) // "vertical_idor" | "horizontal_idor"
   status         String    @default("new") @db.VarChar(20)
   resolvedById   String?   @map("resolved_by")
   resolvedAt     DateTime? @map("resolved_at")
@@ -112,6 +115,23 @@ model Configuration {
   updatedBy String?  @map("updated_by") @db.VarChar(255)
 
   @@map("configurations")
+}
+
+// User resource mappings for IDOR detection
+model UserResourceMapping {
+  id             Int      @id @default(autoincrement())
+  normalizedPath String   @map("normalized_path") @db.VarChar(500)
+  resourceId     String   @map("resource_id") @db.VarChar(255)
+  ownerUserId    String   @map("owner_user_id") @db.VarChar(255)
+  firstAccessTime DateTime @map("first_access_time")
+  lastAccessTime  DateTime @map("last_access_time")
+  accessCount    Int      @default(1) @map("access_count")
+  confirmed      Boolean  @default(false)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([normalizedPath, resourceId])
+  @@map("user_resource_mappings")
 }
 
 model Agent {

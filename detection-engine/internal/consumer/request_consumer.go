@@ -6,12 +6,13 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/liquedgit/sentinel-flow/detection-engine/internal/detector"
 	"github.com/liquedgit/sentinel-flow/detection-engine/internal/normalizer"
 	"github.com/liquedgit/sentinel-flow/detection-engine/internal/repository"
 	"github.com/segmentio/kafka-go"
 )
 
-// AccessEventMessage
+// AccessEventMessage represents the Kafka message structure.
 type AccessEventMessage struct {
 	TraceID     string           `json:"trace_id"`
 	Method      string           `json:"method"`
@@ -24,6 +25,7 @@ type AccessEventMessage struct {
 	Timestamp   string           `json:"timestamp"`
 }
 
+// UserAttrMessage represents user attributes in the Kafka message.
 type UserAttrMessage struct {
 	UserID string `json:"user_id"`
 	Role   string `json:"role"`
@@ -39,18 +41,12 @@ type ViolationInserter interface {
 	Insert(ctx context.Context, v *repository.Violation) error
 }
 
-// ViolationDetector determines if a request should trigger a violation alert.
-type ViolationDetector interface {
-	ShouldAlert(log *repository.RequestLog) bool
-	ExpectedRoles(endpoint string) []string
-}
-
 // RequestConsumer consumes request logs from Kafka, persists them, and runs detection.
 type RequestConsumer struct {
 	reader         *kafka.Reader
 	requestLogRepo RequestLogInserter
 	violationRepo  ViolationInserter
-	detector       ViolationDetector
+	detector       *detector.CompositeDetector
 }
 
 // NewRequestConsumer creates a new RequestConsumer.
@@ -58,7 +54,7 @@ func NewRequestConsumer(
 	reader *kafka.Reader,
 	requestLogRepo RequestLogInserter,
 	violationRepo ViolationInserter,
-	detector ViolationDetector,
+	detector *detector.CompositeDetector,
 ) *RequestConsumer {
 	return &RequestConsumer{
 		reader:         reader,
@@ -108,7 +104,8 @@ func (c *RequestConsumer) processMessage(ctx context.Context, msg kafka.Message)
 		timestamp = time.Now()
 	}
 
-	normalizedPath := normalizer.Normalize(raw.Path)
+	// Use enhanced normalizer that extracts resource IDs
+	normResult := normalizer.NormalizeWithIDs(raw.Path)
 
 	var userID, role string
 	if raw.UserAttr != nil {
@@ -125,7 +122,7 @@ func (c *RequestConsumer) processMessage(ctx context.Context, msg kafka.Message)
 		Timestamp:      timestamp,
 		Method:         raw.Method,
 		Path:           raw.Path,
-		NormalizedPath: normalizedPath,
+		NormalizedPath: normResult.NormalizedPath,
 		UserID:         userID,
 		Role:           role,
 		ClientIP:       raw.ClientIP,
@@ -137,18 +134,13 @@ func (c *RequestConsumer) processMessage(ctx context.Context, msg kafka.Message)
 	if err != nil {
 		return err
 	}
+	log.RequestLogID = id
 
-	if c.detector.ShouldAlert(log) {
-		v := &repository.Violation{
-			Timestamp:      log.Timestamp,
-			NormalizedPath: log.NormalizedPath,
-			UserID:         log.UserID,
-			Role:           log.Role,
-			ExpectedRoles:  c.detector.ExpectedRoles(log.NormalizedPath),
-			RequestLogID:   id,
-		}
-		if err := c.violationRepo.Insert(ctx, v); err != nil {
-			slog.Error("insert violation failed", "error", err)
+	// Detect all violations (Vertical IDOR and Horizontal IDOR)
+	violations := c.detector.DetectAll(log)
+	for _, v := range violations {
+		if err := c.violationRepo.Insert(ctx, v.Violation); err != nil {
+			slog.Error("insert violation failed", "type", v.ViolationType, "error", err)
 		}
 	}
 

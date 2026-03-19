@@ -16,7 +16,7 @@ import StatusCode from "./statuscode";
 import InlineCode from "./inlinecode";
 import MarkdownText from "./markdown-text";
 import { ScrollArea } from "./ui/scroll-area";
-import { ViolationType } from "~/lib/violation";
+import { ViolationType, getViolationTypeLabel } from "~/lib/violation";
 
 export type ViolationWithRequestLog = Prisma.ViolationGetPayload<{
   include: { requestLog: true };
@@ -51,10 +51,35 @@ export default function DetailFindingsSheet({
   isRequestingDeepAnalysis?: boolean;
   deepAnalysisError?: string | null;
 }) {
+  // Get violation type from database field
   const getViolationType = (selected: ViolationWithRequestLog | null) => {
-    // TODO: Validate Violation Type
-    return ViolationType.VERTICAL_IDOR;
+    const violationType = selected?.violationType as string | null | undefined;
+    if (violationType === ViolationType.HorizontalIDOR || violationType === ViolationType.VerticalIDOR) {
+      return violationType;
+    }
+    // Default to Vertical IDOR for backward compatibility
+    return ViolationType.VerticalIDOR;
   };
+
+  // Get owner user ID for IDOR violations
+  const getOwnerUserId = (selected: ViolationWithRequestLog | null) => {
+    const expectedUsers = selected?.expectedUsers as Prisma.JsonValue | null;
+    if (Array.isArray(expectedUsers) && expectedUsers.length > 0) {
+      return expectedUsers[0] as string;
+    }
+    return null;
+  };
+
+  // Get resource ID for IDOR violations
+  const getResourceId = (selected: ViolationWithRequestLog | null) => {
+    return selected?.resourceId || null;
+  };
+
+  const violationType = getViolationType(selected);
+  const ownerUserId = getOwnerUserId(selected);
+  const resourceId = getResourceId(selected);
+  const isHorizontalIDOR = violationType === ViolationType.HorizontalIDOR;
+  const isVerticalIDOR = violationType === ViolationType.VerticalIDOR;
 
   return (
     <Sheet
@@ -76,6 +101,9 @@ export default function DetailFindingsSheet({
             </SheetTitle>
             <SheetDescription>
               <div className="font-bold">Finding #{selected?.id}</div>
+              <div className="text-xs text-gray-400 mt-1">
+                {getViolationTypeLabel(violationType)}
+              </div>
             </SheetDescription>
           </SheetHeader>
         </div>
@@ -157,12 +185,13 @@ export default function DetailFindingsSheet({
             <div className="space-y-2 px-4">
               {/* Title */}
               <div className="font-medium text-sm">
-                {getViolationType(selected) === ViolationType.VERTICAL_IDOR
+                {isVerticalIDOR
                   ? "Role Based Access Control observed to be violated"
                   : "Unauthorized Access to Resource observed to be violated"}
               </div>
 
-              {getViolationType(selected) === ViolationType.VERTICAL_IDOR && (
+              {/* Vertical IDOR (RBAC) Violation Details */}
+              {isVerticalIDOR && (
                 <>
                   <div>
                     <h4 className="font-medium text-sm text-gray-400 mb-1">
@@ -171,8 +200,10 @@ export default function DetailFindingsSheet({
                     <p className="text-sm">
                       The request was made with role{" "}
                       <InlineCode children={selected?.role} /> which is not
-                      authorized to access this resource. Expected roles: Admin,
-                      Super Admin
+                      authorized to access this resource. Expected roles:{" "}
+                      {Array.isArray(selected?.expectedRoles)
+                        ? (selected?.expectedRoles as string[]).join(", ")
+                        : "Admin, Super Admin"}
                     </p>
                   </div>
 
@@ -211,9 +242,9 @@ export default function DetailFindingsSheet({
                       />
                     ) : (
                       <ul className="list-disc list-inside text-sm space-y-1">
-                        <li>Potential Vertical IDOR (Privilege Escalation)</li>
+                        <li>Potential RBAC Violation (Privilege Escalation)</li>
                         <li>Unauthorized role accessing privileged resources</li>
-                        <li>Role-based access control (RBAC) bypass attempt</li>
+                        <li>Role-based access control bypass attempt</li>
                         <li>
                           Critical admin/privileged functions may be exposed
                         </li>
@@ -250,96 +281,124 @@ export default function DetailFindingsSheet({
                 </>
               )}
 
-              {getViolationType(selected) === ViolationType.HORIZONTAL_IDOR && (
+              {/* Horizontal IDOR Violation Details */}
+              {isHorizontalIDOR && (
                 <>
-                  {/* HORIZONTAL IDOR  Description */}
-                  <div className="space-y-3">
-                    <div>
-                      <h4 className="font-medium text-sm text-gray-400 mb-1">
-                        What Happened:
-                      </h4>
-                      <p className="text-sm">
-                        The request was made with user ID{" "}
-                        <InlineCode children={selected?.userId} /> which is
-                        breaking the observed relationship between the user and
-                        the resource.
-                      </p>
-                    </div>
+                  <div>
+                    <h4 className="font-medium text-sm text-gray-400 mb-1">
+                      What Happened:
+                    </h4>
+                    <p className="text-sm">
+                      The request was made by user{" "}
+                      <InlineCode children={selected?.userId} /> attempting to
+                      access a resource owned by{" "}
+                      <InlineCode children={ownerUserId} />.
+                    </p>
+                  </div>
 
-                    <div>
-                      <h4 className="font-medium text-sm text-gray-400 mb-1">
-                        Expected Behavior:
-                      </h4>
-                      <p className="text-sm">
-                        This resource should only have one relation to a
-                        specific user (1:1 relationship).
-                      </p>
-                    </div>
+                  <div>
+                    <h4 className="font-medium text-sm text-gray-400 mb-1">
+                      Expected Behavior:
+                    </h4>
+                    <p className="text-sm">
+                      This resource should only be accessible by its owner.
+                      Cross-user access indicates a potential IDOR vulnerability.
+                    </p>
+                  </div>
 
-                    <div>
-                      <h4 className="font-medium text-sm text-gray-400 mb-1">
-                        Affected Resource:
-                      </h4>
-                      <RequestMethod method={selected?.requestLog?.method} />{" "}
-                      <InlineCode children={selected?.normalizedPath} />
-                    </div>
+                  <div>
+                    <h4 className="font-medium text-sm text-gray-400 mb-1">
+                      Affected Resource:
+                    </h4>
+                    <RequestMethod method={selected?.requestLog?.method} />{" "}
+                    <InlineCode children={selected?.normalizedPath} />
+                    {resourceId && (
+                      <div className="mt-1 text-xs text-gray-400">
+                        Resource ID: <InlineCode children={resourceId} />
+                      </div>
+                    )}
+                  </div>
 
-                    <div>
-                      <h4 className="font-medium text-sm text-gray-400 mb-1">
-                        {aiCheckerRequest?.status === "complete" &&
-                        aiCheckerRequest.impact != null
-                          ? "Impact:"
-                          : "Security Risk:"}
-                      </h4>
-                      {aiCheckerRequest?.status === "complete" &&
-                      aiCheckerRequest.impact != null &&
-                      aiCheckerRequest.impact !== "" ? (
-                        <MarkdownText
-                          content={aiCheckerRequest.impact}
-                          className="text-sm"
-                        />
-                      ) : (
-                        <ul className="list-disc list-inside text-sm space-y-1">
-                          <li>
-                            Potential Horizontal IDOR (Insecure Direct Object
-                            Reference)
-                          </li>
-                          <li>
-                            Unauthorized user accessing another user's resource
-                          </li>
-                          <li>Possible privilege escalation attempt</li>
-                        </ul>
+                  <div>
+                    <h4 className="font-medium text-sm text-gray-400 mb-1">
+                      Access Details:
+                    </h4>
+                    <ul className="list-disc list-inside text-sm space-y-1">
+                      <li>
+                        Resource Owner:{" "}
+                        <InlineCode children={ownerUserId} />
+                      </li>
+                      <li>
+                        Accessing User:{" "}
+                        <InlineCode children={selected?.userId} />
+                      </li>
+                      {resourceId && (
+                        <li>
+                          Resource ID: <InlineCode children={resourceId} />
+                        </li>
                       )}
-                    </div>
+                    </ul>
+                  </div>
 
-                    <div>
-                      <h4 className="font-medium text-sm text-gray-400 mb-1">
-                        Recommended Actions:
-                      </h4>
+                  <div>
+                    <h4 className="font-medium text-sm text-gray-400 mb-1">
                       {aiCheckerRequest?.status === "complete" &&
-                      aiCheckerRequest.recommendationFix != null &&
-                      aiCheckerRequest.recommendationFix !== "" ? (
-                        <MarkdownText
-                          content={aiCheckerRequest.recommendationFix}
-                          className="text-sm"
-                        />
-                      ) : (
-                        <ul className="list-disc list-inside text-sm space-y-1">
-                          <li>
-                            Verify if user{" "}
-                            <InlineCode children={selected?.userId} /> has
-                            legitimate access to this resource
-                          </li>
-                          <li>Check authorization logic on this endpoint</li>
-                          <li>
-                            Review recent access logs for suspicious activity
-                          </li>
-                          <li>
-                            Consider implementing additional access controls
-                          </li>
-                        </ul>
-                      )}
-                    </div>
+                      aiCheckerRequest.impact != null
+                        ? "Impact:"
+                        : "Security Risk:"}
+                    </h4>
+                    {aiCheckerRequest?.status === "complete" &&
+                    aiCheckerRequest.impact != null &&
+                    aiCheckerRequest.impact !== "" ? (
+                      <MarkdownText
+                        content={aiCheckerRequest.impact}
+                        className="text-sm"
+                      />
+                    ) : (
+                      <ul className="list-disc list-inside text-sm space-y-1">
+                        <li>
+                          Potential IDOR (Insecure Direct Object Reference)
+                        </li>
+                        <li>
+                          Unauthorized user accessing another user's resource
+                        </li>
+                        <li>Privacy breach or data leak possible</li>
+                        <li>Horizontal privilege escalation attempt</li>
+                      </ul>
+                    )}
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium text-sm text-gray-400 mb-1">
+                      Recommended Actions:
+                    </h4>
+                    {aiCheckerRequest?.status === "complete" &&
+                    aiCheckerRequest.recommendationFix != null &&
+                    aiCheckerRequest.recommendationFix !== "" ? (
+                      <MarkdownText
+                        content={aiCheckerRequest.recommendationFix}
+                        className="text-sm"
+                      />
+                    ) : (
+                      <ul className="list-disc list-inside text-sm space-y-1">
+                        <li>
+                          Verify if user{" "}
+                          <InlineCode children={selected?.userId} /> has
+                          legitimate access to this resource
+                        </li>
+                        <li>
+                          Check authorization logic on this endpoint for proper
+                          ownership validation
+                        </li>
+                        <li>
+                          Review recent access logs for suspicious activity
+                        </li>
+                        <li>
+                          Consider implementing stricter access controls (e.g.,
+                          check resource ownership before allowing access)
+                        </li>
+                      </ul>
+                    )}
                   </div>
                 </>
               )}
