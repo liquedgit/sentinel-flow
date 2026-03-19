@@ -54,9 +54,24 @@ func main() {
 	// Repositories
 	requestLogRepo := repository.NewRequestLogRepository(pool)
 	violationRepo := repository.NewViolationRepository(pool)
+	userResourceRepo := repository.NewUserResourceRepository(pool)
 
-	// Detector and Scanner
-	det := detector.New(mappingCache)
+	// Detectors
+	rbacDetector := detector.New(mappingCache)
+	resourceCache := cache.NewResourceCache()
+	// Load confirmed resource mappings into cache
+	confirmedMappings, err := userResourceRepo.LoadConfirmedMappings(ctx)
+	if err != nil {
+		slog.Warn("failed to load resource mappings", "error", err)
+		// Continue anyway - cache will be empty
+	} else {
+		resourceCache.Refresh(confirmedMappings)
+		slog.Info("loaded resource mappings", "count", len(confirmedMappings))
+	}
+	idorDetector := detector.NewIDORDetector(resourceCache)
+	compositeDetector := detector.NewCompositeDetector(rbacDetector, idorDetector)
+
+	// Scanner
 	scan := scanner.New(pool, mappingRepo, mappingCache)
 
 	// Kafka readers
@@ -80,7 +95,7 @@ func main() {
 	defer scanReader.Close()
 
 	// Consumers
-	requestConsumer := consumer.NewRequestConsumer(requestReader, requestLogRepo, violationRepo, det)
+	requestConsumer := consumer.NewRequestConsumer(requestReader, requestLogRepo, violationRepo, compositeDetector)
 	scanConsumer := consumer.NewScanConsumer(scanReader, scan, scanner.ScanParams{
 		LearningWindowDays:    cfg.LearningWindowDays,
 		ViolationThresholdPct: cfg.ViolationThresholdPct,

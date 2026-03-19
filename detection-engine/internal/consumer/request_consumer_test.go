@@ -12,6 +12,12 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
+// newCompositeDetector creates a CompositeDetector with only RBAC detection for testing.
+func newCompositeDetector(mappingCache *cache.MappingCache) *detector.CompositeDetector {
+	rbacDetector := detector.New(mappingCache)
+	return detector.NewCompositeDetector(rbacDetector, nil)
+}
+
 type mockRequestLogInserter struct {
 	inserts []*repository.RequestLog
 	nextID  int64
@@ -54,7 +60,7 @@ func TestRequestConsumer_processMessage_valid_event_inserts_log(t *testing.T) {
 	violRepo := &mockViolationInserter{}
 	c := cache.New()
 	c.Refresh(map[string][]string{"/users/:id": {"admin"}})
-	det := detector.New(c)
+	det := newCompositeDetector(c)
 
 	consumer := NewRequestConsumer(nil, logRepo, violRepo, det)
 
@@ -95,7 +101,7 @@ func TestRequestConsumer_processMessage_allowed_role_no_violation(t *testing.T) 
 	violRepo := &mockViolationInserter{}
 	c := cache.New()
 	c.Refresh(map[string][]string{"/users/:id": {"admin", "user"}})
-	det := detector.New(c)
+	det := newCompositeDetector(c)
 
 	consumer := NewRequestConsumer(nil, logRepo, violRepo, det)
 
@@ -122,7 +128,7 @@ func TestRequestConsumer_processMessage_disallowed_role_creates_violation(t *tes
 	violRepo := &mockViolationInserter{}
 	c := cache.New()
 	c.Refresh(map[string][]string{"/users/:id": {"admin"}})
-	det := detector.New(c)
+	det := newCompositeDetector(c)
 
 	consumer := NewRequestConsumer(nil, logRepo, violRepo, det)
 
@@ -157,7 +163,7 @@ func TestRequestConsumer_processMessage_invalid_json_returns_error(t *testing.T)
 	ctx := context.Background()
 	logRepo := &mockRequestLogInserter{}
 	violRepo := &mockViolationInserter{}
-	det := detector.New(cache.New())
+	det := newCompositeDetector(cache.New())
 
 	consumer := NewRequestConsumer(nil, logRepo, violRepo, det)
 	msg := kafka.Message{Value: []byte("not json")}
@@ -175,7 +181,7 @@ func TestRequestConsumer_processMessage_invalid_timestamp_uses_now(t *testing.T)
 	ctx := context.Background()
 	logRepo := &mockRequestLogInserter{}
 	violRepo := &mockViolationInserter{}
-	det := detector.New(cache.New())
+	det := newCompositeDetector(cache.New())
 
 	consumer := NewRequestConsumer(nil, logRepo, violRepo, det)
 
@@ -207,7 +213,7 @@ func TestRequestConsumer_processMessage_empty_user_attr_skips_save(t *testing.T)
 	violRepo := &mockViolationInserter{}
 	c := cache.New()
 	c.Refresh(map[string][]string{"/api/health": {"admin"}})
-	det := detector.New(c)
+	det := newCompositeDetector(c)
 
 	consumer := NewRequestConsumer(nil, logRepo, violRepo, det)
 
@@ -235,7 +241,7 @@ func TestRequestConsumer_processMessage_user_attr_with_empty_strings_skips_save(
 	ctx := context.Background()
 	logRepo := &mockRequestLogInserter{}
 	violRepo := &mockViolationInserter{}
-	det := detector.New(cache.New())
+	det := newCompositeDetector(cache.New())
 
 	consumer := NewRequestConsumer(nil, logRepo, violRepo, det)
 
@@ -260,7 +266,7 @@ func TestRequestConsumer_processMessage_path_normalization(t *testing.T) {
 	ctx := context.Background()
 	logRepo := &mockRequestLogInserter{}
 	violRepo := &mockViolationInserter{}
-	det := detector.New(cache.New())
+	det := newCompositeDetector(cache.New())
 
 	consumer := NewRequestConsumer(nil, logRepo, violRepo, det)
 

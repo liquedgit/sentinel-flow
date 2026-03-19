@@ -21,7 +21,11 @@ export type CheckRequestPayload = {
   project_name: string;
   method: string;
   endpoint: string;
-  prohibited_roles: string[];
+  prohibited_roles?: string[]; // For vertical IDOR
+  violation_type?: 'vertical_idor' | 'horizontal_idor';
+  resource_id?: string;
+  owner_user_id?: string;
+  accessing_user_id?: string;
 };
 
 
