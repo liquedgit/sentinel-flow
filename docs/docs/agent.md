@@ -4,21 +4,23 @@ sidebar_position: 4
 
 # Agent
 
-The Sentinel Flow Agent is a **Go-based reverse proxy** that sits between your application (e.g., behind Nginx) and your backend. It intercepts requests, extracts metadata, resolves user identity, and forwards access events to Kafka.
+The Sentinel Flow Agent is a **Go-based reverse proxy** that sits between your application (e.g., behind Nginx) and your backend. It intercepts requests, extracts metadata, resolves user identity, and forwards access events to Kafka. The agent will fetch latest configuration from the Sentinel Flow API.
 
 ## Request Flow
 
 ```mermaid
 flowchart LR
     Request --> Nginx --> Agent
-    Agent --> IdentityResolve
-    Agent --> Kafka
+    Agent --> IdentityResolver
+    Agent --> Backend_API["Sentinel Flow API"]
+    Backend_API --> Kafka
 ```
 
 1. Traffic flows through Nginx (or similar) to the agent
 2. The agent forwards the request to your backend
 3. The agent resolves user identity (via headers or `/me` endpoint)
-4. Access events are published to Kafka for analysis
+4. Access events are sent to Backend Sentinel Flow API
+5. Backend Service will then Produce event to Kafka
 
 ## Capabilities
 
@@ -46,13 +48,11 @@ Events published to Kafka include:
 
 ## Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `BACKEND_URL` | `http://localhost:8081` | Backend to proxy requests to |
-| `LISTEN_ADDR` | `:9000` | Address to listen on |
-| `KAFKA_BROKERS` | `localhost:9092` | Kafka brokers (comma-separated) |
-| `KAFKA_TOPIC` | `sf-events-access` | Kafka topic for access events |
-| `ME_ENDPOINT` | `http://localhost:8081/me` | Identity endpoint for role resolution |
+| Variable             | Default  | Description            |
+| -------------------- | -------- | ---------------------- |
+| `AGENT_TOKEN`        | required | Agent bearer token     |
+| `DASHBOARD_BASE_URL` | required | Dashboard API base URL |
+| `AGENT_LISTEN_ADDR`  | `:8080`  | Bind address           |
 
 ## Design Philosophy
 
