@@ -21,6 +21,7 @@ import {
 import { useFetcher, useRevalidator } from "react-router";
 import type { RequestLog } from "@/generated/prisma/client";
 import { ChevronDown, X, Loader2 } from "lucide-react";
+import { formatDisplayDateTime } from "~/lib/format-date";
 
 export type GraphNode = {
     id: string;
@@ -247,9 +248,9 @@ export default function DetailNodeSheet({
                                                 <StatusCode status={log.status} />
                                             </div>
                                             <div className="text-xs text-muted-foreground">
-                                                {log.timestamp instanceof Date
-                                                    ? log.timestamp.toISOString()
-                                                    : new Date(log.timestamp).toISOString()}
+                                                {formatDisplayDateTime(
+                                                    log.timestamp,
+                                                )}
                                             </div>
                                         </div>
                                     ))}

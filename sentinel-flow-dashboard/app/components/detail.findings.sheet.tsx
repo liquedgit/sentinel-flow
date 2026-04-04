@@ -16,6 +16,7 @@ import StatusCode from "./statuscode";
 import InlineCode from "./inlinecode";
 import MarkdownText from "./markdown-text";
 import { ScrollArea } from "./ui/scroll-area";
+import { formatDisplayDateTime } from "~/lib/format-date";
 import { ViolationType, getViolationTypeLabel } from "~/lib/violation";
 
 export type ViolationWithRequestLog = Prisma.ViolationGetPayload<{
@@ -118,7 +119,7 @@ export default function DetailFindingsSheet({
                 <div className="text-sm space-y-2 w-1/2">
                   <div className="space-y-1">
                     <Label>Timestamp</Label>
-                    <span>{selected?.timestamp.toISOString()}</span>
+                    <span>{formatDisplayDateTime(selected?.timestamp)}</span>
                   </div>
                   <div className="space-y-1">
                     <Label>Normalized Path</Label>

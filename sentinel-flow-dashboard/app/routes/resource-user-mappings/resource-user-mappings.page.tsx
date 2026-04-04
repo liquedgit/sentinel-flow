@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
+import { formatDisplayDateTime } from "~/lib/format-date";
 
 export async function loader() {
   const mappings = await getUserResourceMappingsService();
@@ -80,10 +81,10 @@ export default function ResourceUserMappingsPage() {
                     {m.ownerUserId}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                    {new Date(m.firstAccessTime).toLocaleString()}
+                    {formatDisplayDateTime(m.firstAccessTime)}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                    {new Date(m.lastAccessTime).toLocaleString()}
+                    {formatDisplayDateTime(m.lastAccessTime)}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {m.accessCount}

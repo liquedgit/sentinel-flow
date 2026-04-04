@@ -10,12 +10,7 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Badge } from "./ui/badge";
 import MarkdownText from "./markdown-text";
 import type { AICheckerRequestWithViolation } from "~/.server/services/ai-checker-request.service";
-
-function formatDate(value: string | Date | null | undefined): string {
-  if (value == null) return "—";
-  if (typeof value === "string") return value;
-  return value.toISOString();
-}
+import { formatDisplayDateTime } from "~/lib/format-date";
 
 export default function DetailAICheckerSheet({
   selected,
@@ -85,7 +80,7 @@ export default function DetailAICheckerSheet({
                 </div>
                 <div className="space-y-1">
                   <Label className="text-gray-400">Created At</Label>
-                  <p>{formatDate(selected?.createdAt)}</p>
+                  <p>{formatDisplayDateTime(selected?.createdAt)}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-gray-400">Short Description</Label>
@@ -128,7 +123,7 @@ export default function DetailAICheckerSheet({
                 </div>
                 <div className="space-y-1">
                   <Label className="text-gray-400">Violation Timestamp</Label>
-                  <p>{formatDate(selected?.violation?.timestamp)}</p>
+                  <p>{formatDisplayDateTime(selected?.violation?.timestamp)}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-gray-400">Violation Status</Label>

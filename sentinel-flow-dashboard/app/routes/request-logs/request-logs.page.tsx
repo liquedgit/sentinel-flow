@@ -19,6 +19,7 @@ import RequestMethod from "~/components/requestmethod";
 import StatusCode from "~/components/statuscode";
 import InlineCode from "~/components/inlinecode";
 import { Button } from "~/components/ui/button";
+import { formatDisplayDateTime } from "~/lib/format-date";
 
 const PAGE_SIZES = [10, 25, 50, 100] as const;
 
@@ -135,7 +136,7 @@ export default function RequestLogsPage() {
                 >
                   <TableCell className="font-mono text-xs">{row.id}</TableCell>
                   <TableCell className="text-xs whitespace-nowrap">
-                    {row.timestamp.replace("T", " ").replace(/\.\d{3}Z$/, " UTC")}
+                    {formatDisplayDateTime(row.timestamp)}
                   </TableCell>
                   <TableCell>
                     <RequestMethod method={row.method} />

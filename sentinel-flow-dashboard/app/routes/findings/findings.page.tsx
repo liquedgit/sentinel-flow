@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { Badge } from "~/components/ui/badge";
+import { formatDisplayDateTime } from "~/lib/format-date";
 import { cn } from "~/lib/utils";
 import {
   getViolationCategory,
@@ -176,8 +177,12 @@ export default function FindingsPage() {
                   </Badge>
                 </TableCell>
                 <TableCell>{violation.resolvedById}</TableCell>
-                <TableCell>{violation.resolvedAt?.toISOString()}</TableCell>
-                <TableCell>{violation.createdAt.toISOString()}</TableCell>
+                <TableCell>
+                  {formatDisplayDateTime(violation.resolvedAt)}
+                </TableCell>
+                <TableCell>
+                  {formatDisplayDateTime(violation.createdAt)}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
