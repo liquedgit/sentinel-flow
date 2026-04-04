@@ -277,10 +277,10 @@ export function CoverageTiles({
             </p>
           </div>
           <Link
-            to="/learn-mappping"
+            to="/authorization-graph-explorer"
             className="shrink-0 rounded-md px-2 py-1 text-xs font-semibold text-active-primary hover:bg-active-primary/15 hover:underline"
           >
-            Refine
+            View
           </Link>
         </div>
       </div>
