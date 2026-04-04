@@ -1,9 +1,23 @@
-import type { Prisma } from "@/generated/prisma/client";
+import type { PrismaClient } from "@/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "../libs/prisma";
 import { produceCheckRequest, type CheckRequestPayload } from "../libs/kafka";
 import { getViolationById } from "./violation.service";
 
 const PROJECT_NAME = "example_project";
+
+type PrismaTransactionClient = Omit<
+  PrismaClient,
+  "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends"
+>;
+
+/** Thrown when the latest AI checker request for this finding is not failed (running or complete). */
+export class DuplicateAICheckerRequestError extends Error {
+  constructor() {
+    super("Analysis already in progress or completed for this finding");
+    this.name = "DuplicateAICheckerRequestError";
+  }
+}
 
 export type AICheckerRequestWithViolation = Prisma.AICheckerRequestGetPayload<{
   include: { violation: true };
@@ -58,12 +72,24 @@ export async function createAICheckerRequest(violationId: number): Promise<{
     (payload as any).accessing_user_id = violation.userId || undefined;
   }
 
-  const record = await prisma.aICheckerRequest.create({
-    data: {
-      id: requestId,
-      violationId,
-      status: "running",
-    },
+  const record = await prisma.$transaction(async (tx: PrismaTransactionClient) => {
+    await tx.$executeRaw(
+      Prisma.sql`SELECT id FROM violations WHERE id = ${violationId} FOR UPDATE`
+    );
+    const latest = await tx.aICheckerRequest.findFirst({
+      where: { violationId },
+      orderBy: { createdAt: "desc" },
+    });
+    if (latest != null && latest.status !== "failed") {
+      throw new DuplicateAICheckerRequestError();
+    }
+    return tx.aICheckerRequest.create({
+      data: {
+        id: requestId,
+        violationId,
+        status: "running",
+      },
+    });
   });
 
   try {

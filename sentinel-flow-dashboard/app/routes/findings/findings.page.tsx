@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { data, useLoaderData, useFetcher } from "react-router";
 import { getViolationsWithAIChecker } from "~/.server/services/violation.service";
-import { createAICheckerRequest } from "~/.server/services/ai-checker-request.service";
+import {
+  createAICheckerRequest,
+  DuplicateAICheckerRequestError,
+} from "~/.server/services/ai-checker-request.service";
 import DetailFindingsSheet from "~/components/detail.findings.sheet";
 import { Input } from "~/components/ui/input";
 import {
@@ -71,6 +74,9 @@ export async function action({ request }: { request: Request }) {
     await createAICheckerRequest(id);
     return data({ success: true }, { status: 200 });
   } catch (err) {
+    if (err instanceof DuplicateAICheckerRequestError) {
+      return data({ success: false, error: err.message }, { status: 409 });
+    }
     const message =
       err instanceof Error ? err.message : "Failed to create AI checker request";
     return data({ success: false, error: message }, { status: 500 });
@@ -84,8 +90,20 @@ export async function loader() {
 
 export default function FindingsPage() {
   const violations = useLoaderData<typeof loader>();
-  const [selected, setSelected] = useState<ViolationForSheet | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const fetcher = useFetcher<typeof action>();
+
+  const selected: ViolationForSheet | null =
+    selectedId == null
+      ? null
+      : (violations.find((v) => v.id === selectedId) ?? null);
+
+  useEffect(() => {
+    if (selectedId == null) return;
+    if (!violations.some((v) => v.id === selectedId)) {
+      setSelectedId(null);
+    }
+  }, [violations, selectedId]);
 
   const currentRequest =
     selected && "aiCheckerRequests" in selected
@@ -134,7 +152,7 @@ export default function FindingsPage() {
                 key={violation.id}
                 className="hover:bg-active-primary-foreground cursor-pointer"
                 onClick={() => {
-                  setSelected(violation);
+                  setSelectedId(violation.id);
                 }}
               >
                 <TableCell>{violation.id}</TableCell>
@@ -191,11 +209,13 @@ export default function FindingsPage() {
 
       <DetailFindingsSheet
         selected={selected}
-        setSelected={setSelected}
+        setSelected={(v) => setSelectedId(v?.id ?? null)}
         aiCheckerRequest={currentRequest}
         canRequestDeepAnalysis={canRequestDeepAnalysis}
         onRequestDeepAnalysis={handleRequestDeepAnalysis}
-        isRequestingDeepAnalysis={fetcher.state === "submitting"}
+        isRequestingDeepAnalysis={
+          fetcher.state === "submitting" || fetcher.state === "loading"
+        }
         deepAnalysisError={
           fetcher.data &&
           typeof fetcher.data === "object" &&
