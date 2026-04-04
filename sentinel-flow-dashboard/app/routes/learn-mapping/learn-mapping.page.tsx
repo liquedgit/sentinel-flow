@@ -4,8 +4,10 @@ import { produceScanRequest } from "~/.server/libs/kafka";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
 import { UploadDropzone } from "~/components/ui/upload-dropzone";
-import { data, useFetcher } from "react-router";
+import { data, Link, useFetcher } from "react-router";
 import { randomUUID } from "node:crypto";
+import { getLearningScanSettings } from "~/.server/services/learning.scan.settings.service";
+import { toScanRequestPayload } from "~/lib/learning-scan-settings";
 
 export async function action({ request }: { request: Request }) {
   if (request.method !== "POST") {
@@ -14,8 +16,10 @@ export async function action({ request }: { request: Request }) {
 
   const requestId = randomUUID();
   try {
+    const learningSettings = await getLearningScanSettings();
     await produceScanRequest({
       request_id: requestId,
+      ...toScanRequestPayload(learningSettings),
     });
     return data({ success: true as const, requestId, mode: "scan" as const });
   } catch (err) {
@@ -66,6 +70,16 @@ export default function LearnMappingPage() {
                   : "Run Learning Process"}
               </Button>
             </scanFetcher.Form>
+            <p className="text-xs text-gray-400">
+              Parameters come from{" "}
+              <Link
+                to="/settings"
+                className="text-active-primary underline-offset-2 hover:underline"
+              >
+                Settings
+              </Link>
+              .
+            </p>
             {scanFetcher.data && "success" in scanFetcher.data && (
               <p
                 className={

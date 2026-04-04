@@ -16,7 +16,8 @@ export default [
         route("learn-mappping", BASE_PATH + "/learn-mapping/learn-mapping.page.tsx"),
         route("resource-user-mappings", BASE_PATH + "/resource-user-mappings/resource-user-mappings.page.tsx"),
         route("agents", BASE_PATH + "/agents/agents.page.tsx"),
-        route("agents/:id", BASE_PATH + "/agents/agents.$id.ts")
+        route("agents/:id", BASE_PATH + "/agents/agents.$id.ts"),
+        route("settings", BASE_PATH + "/settings/settings.page.tsx"),
     ]),
     // auth prefixed routes under /auth
     ...prefix("auth", [
