@@ -49,28 +49,31 @@ export default function ResourceUserMappingsPage() {
         . Learned ownership used for IDOR detection: each row ties a resource
         instance to the user who accessed it legitimately.
       </p>
-      <div className="rounded-md border border-primary overflow-x-auto">
-        <Table>
+      <div className="overflow-hidden rounded-md border border-primary">
+        <Table className="bg-primary-foreground text-white">
           <TableHeader>
-            <TableRow className="border-primary hover:bg-transparent">
-              <TableHead className="text-gray-300">Path</TableHead>
-              <TableHead className="text-gray-300">Resource ID</TableHead>
-              <TableHead className="text-gray-300">Owner user ID</TableHead>
-              <TableHead className="text-gray-300">First access</TableHead>
-              <TableHead className="text-gray-300">Last access</TableHead>
-              <TableHead className="text-gray-300 text-right">Accesses</TableHead>
+            <TableRow className="hover:bg-active-primary-foreground">
+              <TableHead>Path</TableHead>
+              <TableHead>Resource ID</TableHead>
+              <TableHead>Owner user ID</TableHead>
+              <TableHead>First access</TableHead>
+              <TableHead>Last access</TableHead>
+              <TableHead className="text-right">Accesses</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
-              <TableRow>
+              <TableRow className="hover:bg-active-primary-foreground">
                 <TableCell colSpan={6} className="text-muted-foreground">
                   No mappings match your filter.
                 </TableCell>
               </TableRow>
             ) : (
               filtered.map((m) => (
-                <TableRow key={m.id} className="border-primary">
+                <TableRow
+                  key={m.id}
+                  className="hover:bg-active-primary-foreground"
+                >
                   <TableCell className="font-mono text-xs max-w-[240px] truncate">
                     {m.normalizedPath}
                   </TableCell>
