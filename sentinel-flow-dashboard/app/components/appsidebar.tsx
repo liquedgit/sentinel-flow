@@ -1,4 +1,4 @@
-import { Shield, ChevronsUpDown, LogOut, User } from "lucide-react";
+import { Shield, ChevronsUpDown, LogOut } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -22,15 +22,21 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 
-function NavUser({
-  user,
-}: {
-  user: {
-    name: string;
-    email: string;
-    avatar: string;
-  };
-}) {
+/** Best-effort label from login email when no separate profile name exists in DB. */
+function displayNameFromEmail(email: string): string {
+  const local = email.split("@")[0]?.trim();
+  if (!local) return email;
+  const parts = local.split(/[._+-]+/).filter(Boolean);
+  if (parts.length === 0) return email;
+  return parts
+    .map(
+      (p) =>
+        p.charAt(0).toUpperCase() + p.slice(1).toLowerCase(),
+    )
+    .join(" ");
+}
+
+function NavUser({ email }: { email: string }) {
   const { isMobile } = useSidebar();
   const fetcher = useFetcher();
 
@@ -41,10 +47,13 @@ function NavUser({
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
+              title={email}
               className="hover:bg-active-primary-foreground hover:text-slate-100 data-[state=open]:bg-active-primary-foreground data-[state=open]:text-white"
             >
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.email}</span>
+                <span className="truncate font-medium">
+                  {displayNameFromEmail(email)}
+                </span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -55,10 +64,6 @@ function NavUser({
             align="end"
             sideOffset={4}
           >
-            <DropdownMenuItem className="cursor-pointer hover:bg-active-primary-foreground hover:text-white">
-              <User />
-              Account
-            </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer hover:bg-active-primary-foreground hover:text-white"
               onClick={() =>
@@ -81,9 +86,11 @@ function NavUser({
 export function AppSidebar({
   organization,
   sidebarItems,
+  currentUserEmail,
 }: {
   organization: string;
   sidebarItems: SidebarItem[];
+  currentUserEmail: string;
 }) {
   const { state } = useSidebar();
   const pathname = useLocation().pathname;
@@ -161,13 +168,7 @@ export function AppSidebar({
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
-          <NavUser
-            user={{
-              name: "John Doe",
-              email: "john.doe@example.com",
-              avatar: "https://github.com/shadcn.png",
-            }}
-          />
+          {currentUserEmail ? <NavUser email={currentUserEmail} /> : null}
         </SidebarFooter>
       </div>
     </Sidebar>

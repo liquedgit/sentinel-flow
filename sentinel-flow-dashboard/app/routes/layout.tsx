@@ -1,9 +1,11 @@
-import { Outlet, data, useLoaderData } from "react-router";
+import { Outlet, data, useLoaderData, type LoaderFunctionArgs } from "react-router";
 import type { Route } from "./dashboard/+types/dashboard.page";
 import { SidebarProvider } from "~/components/ui/sidebar";
 import { AppSidebar } from "~/components/appsidebar";
 import { getOrganizationService } from "~/.server/services/organization.service";
 import { authMiddleware } from "~/.server/middlewares/auth.middleware";
+import { getSessionFromRequest } from "~/.server/libs/sessions";
+import { getUserByIdService } from "~/.server/services/user.service";
 import TopBar from "~/components/topbar";
 import {
   LayoutDashboard,
@@ -21,16 +23,21 @@ import { getEndpointRoleMappingsService } from "~/.server/services/endpoint.role
 
 export const middleware: Route.MiddlewareFunction[] = [authMiddleware];
 
-export async function loader() {
-  const [organization, endpointMappings] = await Promise.all([
+export async function loader({ request }: LoaderFunctionArgs) {
+  const session = await getSessionFromRequest(request);
+  const userId = session.get("userId") as string;
+
+  const [organization, endpointMappings, user] = await Promise.all([
     getOrganizationService(),
-    getEndpointRoleMappingsService(), // some other server call
+    getEndpointRoleMappingsService(),
+    getUserByIdService(userId),
   ]);
 
   return data(
     {
       organizationName: organization?.organizationName,
       endpointMappingsCount: endpointMappings.length,
+      currentUserEmail: user?.email ?? "",
     },
     { status: 200 },
   );
@@ -97,6 +104,7 @@ export default function AuthLayout() {
       <AppSidebar
         organization={data.organizationName ?? ""}
         sidebarItems={sidebarItems}
+        currentUserEmail={data.currentUserEmail}
       />
       <main className="flex flex-col flex-1 min-w-0">
         <TopBar
