@@ -28,8 +28,8 @@ func NewResourceCache() *ResourceCache {
 	}
 }
 
-// GetOwner returns the owner user_id and whether ownership is confirmed.
-// Returns empty strings and false if no mapping exists.
+// GetOwner returns the owner user_id and whether a mapping exists in the cache.
+// Operator confirmation (ResourceOwner.Confirmed) is exposed via HasConfirmedOwner.
 func (c *ResourceCache) GetOwner(normalizedPath, resourceID string) (string, bool) {
 	key := normalizedPath + ":" + resourceID
 	c.mu.RLock()
@@ -38,7 +38,7 @@ func (c *ResourceCache) GetOwner(normalizedPath, resourceID string) (string, boo
 	if !ok {
 		return "", false
 	}
-	return owner.OwnerUserID, owner.Confirmed
+	return owner.OwnerUserID, true
 }
 
 // RecordAccess records that a user accessed a resource.
@@ -91,10 +91,13 @@ func (c *ResourceCache) Refresh(mappings []*repository.UserResourceMapping) {
 	}
 }
 
-// HasConfirmedOwner returns true if the resource has a confirmed owner.
+// HasConfirmedOwner returns true if the resource is marked confirmed (e.g. portal).
 func (c *ResourceCache) HasConfirmedOwner(normalizedPath, resourceID string) bool {
-	_, confirmed := c.GetOwner(normalizedPath, resourceID)
-	return confirmed
+	key := normalizedPath + ":" + resourceID
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	o, ok := c.resources[key]
+	return ok && o.Confirmed
 }
 
 // GetAll returns all resources in the cache (for debugging/testing).

@@ -11,25 +11,38 @@ import (
 
 // ScanRequestMessage is the optional schema for scan requests from the portal.
 type ScanRequestMessage struct {
-	RequestID                 string   `json:"request_id"`
-	LearningWindowDays        *int     `json:"learning_window_days,omitempty"`
-	ViolationThresholdPercent *float64 `json:"violation_threshold_percent,omitempty"`
-	MinimumSampleSize         *int     `json:"minimum_sample_size,omitempty"`
+	RequestID                  string   `json:"request_id"`
+	LearningWindowDays         *int     `json:"learning_window_days,omitempty"`
+	ViolationThresholdPercent  *float64 `json:"violation_threshold_percent,omitempty"`
+	MinimumSampleSize          *int     `json:"minimum_sample_size,omitempty"`
+	ResourceDominancePercent   *float64 `json:"resource_dominance_percent,omitempty"`
+	// Deprecated: ignored; use resource_dominance_percent.
+	ConfirmationThreshold *int `json:"confirmation_threshold,omitempty"`
 }
 
-// ScanConsumer consumes scan requests from Kafka and runs the scanner (single worker).
+// ScanConsumer consumes scan requests from Kafka and runs RBAC + IDOR scans (single worker).
 type ScanConsumer struct {
-	reader  *kafka.Reader
-	scanner *scanner.Scanner
-	params  scanner.ScanParams
+	reader      *kafka.Reader
+	scanner     *scanner.Scanner
+	params      scanner.ScanParams
+	idorScanner *scanner.IDORScanner
+	idorParams  scanner.IDORScanParams
 }
 
 // NewScanConsumer creates a new ScanConsumer.
-func NewScanConsumer(reader *kafka.Reader, s *scanner.Scanner, params scanner.ScanParams) *ScanConsumer {
+func NewScanConsumer(
+	reader *kafka.Reader,
+	rbacScanner *scanner.Scanner,
+	rbacParams scanner.ScanParams,
+	idorScanner *scanner.IDORScanner,
+	idorParams scanner.IDORScanParams,
+) *ScanConsumer {
 	return &ScanConsumer{
-		reader:  reader,
-		scanner: s,
-		params:  params,
+		reader:      reader,
+		scanner:     rbacScanner,
+		params:      rbacParams,
+		idorScanner: idorScanner,
+		idorParams:  idorParams,
 	}
 }
 
@@ -49,25 +62,37 @@ func (c *ScanConsumer) Run(ctx context.Context) error {
 				continue
 			}
 
-			params := c.params
+			rbacParams := c.params
+			idorParams := c.idorParams
 			if len(msg.Value) > 0 {
 				var req ScanRequestMessage
 				if err := json.Unmarshal(msg.Value, &req); err == nil {
 					if req.LearningWindowDays != nil {
-						params.LearningWindowDays = *req.LearningWindowDays
+						rbacParams.LearningWindowDays = *req.LearningWindowDays
+						idorParams.LearningWindowDays = *req.LearningWindowDays
 					}
 					if req.ViolationThresholdPercent != nil {
-						params.ViolationThresholdPct = *req.ViolationThresholdPercent
+						rbacParams.ViolationThresholdPct = *req.ViolationThresholdPercent
 					}
 					if req.MinimumSampleSize != nil {
-						params.MinimumSampleSize = *req.MinimumSampleSize
+						rbacParams.MinimumSampleSize = *req.MinimumSampleSize
+						idorParams.MinimumSampleSize = *req.MinimumSampleSize
+					}
+					if req.ResourceDominancePercent != nil {
+						idorParams.ResourceDominancePercent = *req.ResourceDominancePercent
 					}
 				}
 			}
 
-			slog.Info("running scan", "params", params)
-			if err := c.scanner.Scan(ctx, params); err != nil {
-				slog.Error("scan failed", "error", err)
+			slog.Info("running rbac scan", "params", rbacParams)
+			if err := c.scanner.Scan(ctx, rbacParams); err != nil {
+				slog.Error("rbac scan failed", "error", err)
+				continue
+			}
+
+			slog.Info("running idor scan", "params", idorParams)
+			if err := c.idorScanner.Scan(ctx, idorParams); err != nil {
+				slog.Error("idor scan failed", "error", err)
 				continue
 			}
 

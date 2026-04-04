@@ -4,9 +4,10 @@ WORKDIR /app
 RUN npm ci --omit=dev
 
 FROM node:20-alpine AS build-env
-COPY . /app/
 WORKDIR /app
-RUN rm -f package-lock.json && npm install
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
 RUN npx prisma generate
 RUN npm run build
 

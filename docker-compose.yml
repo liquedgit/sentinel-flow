@@ -51,11 +51,11 @@ services:
       kafka:
         condition: service_started
     environment:
-      BACKEND_URL: http://host.docker.internal:8081
-      LISTEN_ADDR: ":9000"
       KAFKA_BROKERS: kafka:9092
       KAFKA_TOPIC: sf-events-access
-      ME_ENDPOINT: http://host.docker.internal:8081/me
+      AGENT_TOKEN: ${AGENT_TOKEN:?Set AGENT_TOKEN in a .env file next to docker-compose (see agent/.env.example)}
+      DASHBOARD_BASE_URL: ${DASHBOARD_BASE_URL:-http://dashboard:3000}
+      AGENT_LISTEN_ADDR: ":9000"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -101,6 +101,7 @@ services:
       LEARNING_WINDOW_DAYS: 90
       VIOLATION_THRESHOLD_PERCENT: 5
       MINIMUM_SAMPLE_SIZE: 100
+      IDOR_RESOURCE_DOMINANCE_PERCENT: 95
     networks:
       - sentinel-flow
 
@@ -118,6 +119,7 @@ services:
       DATABASE_URL: postgres://sentinel:sentinel@postgres:5432/sentinel_flow
       KAFKA_BROKERS: kafka:9092
       KAFKA_TOPIC_CHECK_REQUESTS: sf-check-requests
+      KAFKA_TOPIC_SCAN_REQUESTS: scan-requests
       KAFKA_GROUP_ID: ai-agent-checker
       PROJECTS_DIR: /app/projects
       PROMPT_FILE: /app/prompt.dat
@@ -139,6 +141,7 @@ services:
       - SESSION_SECRET=s3nt1n3lfl0ws3cr3t!
       - KAFKA_BROKERS=kafka:9092
       - KAFKA_TOPIC_CHECK_REQUESTS=sf-check-requests
+      - KAFKA_TOPIC_SCAN_REQUESTS=scan-requests
     depends_on:
       kafka:
         condition: service_started

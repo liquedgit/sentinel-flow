@@ -10,6 +10,7 @@ const sidebars: SidebarsConfig = {
       collapsed: false,
       items: ['project-overview', 'purpose'],
     },
+    'dashboard',
     'agent',
     'detection-engine',
     'tools',

@@ -12,17 +12,17 @@ import (
 
 // IDORScanParams holds configurable parameters for an IDOR scan run.
 type IDORScanParams struct {
-	LearningWindowDays    int  // How many days back to scan for learning
-	ConfirmationThreshold int  // Minimum accesses to confirm ownership
-	MinimumSampleSize     int  // Minimum total accesses before learning
+	LearningWindowDays        int     // How many days back to scan for learning
+	ResourceDominancePercent  float64 // Min share (0-100) of accesses for the top user vs total, to create a mapping
+	MinimumSampleSize         int     // Minimum total accesses per resource before learning
 }
 
 // DefaultIDORScanParams returns default parameters for IDOR scanning.
 func DefaultIDORScanParams() IDORScanParams {
 	return IDORScanParams{
-		LearningWindowDays:    90,
-		ConfirmationThreshold: 3,
-		MinimumSampleSize:     2,
+		LearningWindowDays:       90,
+		ResourceDominancePercent: 95,
+		MinimumSampleSize:        2,
 	}
 }
 
@@ -59,15 +59,11 @@ func (s *IDORScanner) Scan(ctx context.Context, params IDORScanParams) error {
 		WITH resource_access AS (
 			SELECT
 				normalized_path,
-				-- Extract the actual resource ID from the original path
-				-- by finding the segment that corresponds to :id or :uuid
 				CASE
 					WHEN normalized_path LIKE '%:id%' OR normalized_path LIKE '%:uuid%' THEN
-						-- Get the value from the path that was normalized to :id or :uuid
-						-- We'll extract this by comparing path segments
 						regexp_replace(
 							path,
-							.*(^|/)([0-9a-f-]{20,}|[0-9]+)(/|$).*,
+							'.*(^|/)([0-9a-f-]{20,}|[0-9]+)(/|$).*',
 							'\2'
 						)
 					ELSE NULL
@@ -108,7 +104,6 @@ func (s *IDORScanner) Scan(ctx context.Context, params IDORScanParams) error {
 	}
 	defer rows.Close()
 
-	// Group by resource and track top user
 	type ResourceAccess struct {
 		NormalizedPath   string
 		ResourceID       string
@@ -120,7 +115,7 @@ func (s *IDORScanner) Scan(ctx context.Context, params IDORScanParams) error {
 	}
 
 	var resourceAccesses []ResourceAccess
-	resourceUserCounts := make(map[string]map[string]int64) // (normalized_path:resource_id) -> user_id -> count
+	resourceUserCounts := make(map[string]map[string]int64)
 
 	for rows.Next() {
 		var ra ResourceAccess
@@ -140,50 +135,59 @@ func (s *IDORScanner) Scan(ctx context.Context, params IDORScanParams) error {
 		return err
 	}
 
-	// Determine owner for each resource
-	// Owner is the user with the most accesses to that resource
-	var mappings []*repository.UserResourceMapping
-	ownerMap := make(map[string]string) // (normalized_path:resource_id) -> owner_user_id
-
+	ownerMap := make(map[string]string)
 	for key, userCounts := range resourceUserCounts {
-		// Find user with highest count
+		var totalAccess int64
+		for _, n := range userCounts {
+			totalAccess += n
+		}
+		if totalAccess == 0 {
+			continue
+		}
+
 		var topUser string
 		var topCount int64
+		tiesAtTop := 0
 		for userID, count := range userCounts {
 			if count > topCount {
-				topUser = userID
 				topCount = count
+				topUser = userID
+				tiesAtTop = 1
+			} else if count == topCount {
+				tiesAtTop++
 			}
 		}
 
-		if topUser == "" {
+		if topUser == "" || tiesAtTop != 1 {
+			continue
+		}
+
+		pct := float64(topCount) * 100.0 / float64(totalAccess)
+		if pct < params.ResourceDominancePercent {
 			continue
 		}
 
 		ownerMap[key] = topUser
 	}
 
-	// Build mappings for upsert
+	var mappings []*repository.UserResourceMapping
 	for _, ra := range resourceAccesses {
 		key := ra.NormalizedPath + ":" + ra.ResourceID
-		owner, isOwner := ownerMap[key]
-		if !isOwner {
+		owner, eligible := ownerMap[key]
+		if !eligible || ra.UserID != owner {
 			continue
 		}
 
-		// Only create mapping for the owner
-		if ra.UserID == owner {
-			confirmed := ra.AccessCount >= int64(params.ConfirmationThreshold)
-			mappings = append(mappings, &repository.UserResourceMapping{
-				NormalizedPath:  ra.NormalizedPath,
-				ResourceID:      ra.ResourceID,
-				OwnerUserID:     ra.UserID,
-				FirstAccessTime: ra.FirstAccessTime,
-				LastAccessTime:  ra.LastAccessTime,
-				AccessCount:     ra.AccessCount,
-				Confirmed:       confirmed,
-			})
-		}
+		mappings = append(mappings, &repository.UserResourceMapping{
+			NormalizedPath:  ra.NormalizedPath,
+			ResourceID:      ra.ResourceID,
+			OwnerUserID:     ra.UserID,
+			FirstAccessTime: ra.FirstAccessTime,
+			LastAccessTime:  ra.LastAccessTime,
+			AccessCount:     ra.AccessCount,
+			// Confirmed is operator-driven (portal); scans always insert false on new rows only.
+			Confirmed: false,
+		})
 	}
 
 	if len(mappings) == 0 {
@@ -191,28 +195,25 @@ func (s *IDORScanner) Scan(ctx context.Context, params IDORScanParams) error {
 		return nil
 	}
 
-	// Upsert mappings to database
 	if err := s.repo.UpsertMappings(ctx, mappings); err != nil {
 		return err
 	}
 
-	// Load confirmed mappings and refresh cache
-	confirmedMappings, err := s.repo.LoadConfirmedMappings(ctx)
+	allMappings, err := s.repo.LoadAllMappings(ctx)
 	if err != nil {
-		slog.Warn("failed to load confirmed mappings for cache refresh", "error", err)
+		slog.Warn("failed to load resource mappings for cache refresh", "error", err)
 	} else {
-		s.cache.Refresh(confirmedMappings)
+		s.cache.Refresh(allMappings)
 	}
 
-	// Count confirmed
-	confirmedCount := 0
-	for _, m := range mappings {
+	portalConfirmed := 0
+	for _, m := range allMappings {
 		if m.Confirmed {
-			confirmedCount++
+			portalConfirmed++
 		}
 	}
 
-	slog.Info("IDOR scan completed", "resources_scanned", len(resourceUserCounts),
-		"mappings_updated", len(mappings), "owners_confirmed", confirmedCount)
+	slog.Info("IDOR scan completed", "resources_scanned", len(ownerMap),
+		"mappings_updated", len(mappings), "portal_confirmed_in_cache", portalConfirmed)
 	return nil
 }

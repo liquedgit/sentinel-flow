@@ -11,10 +11,11 @@ import {
   type LucideIcon,
   Bug,
   Bot,
-  Users,
   Settings,
   BookText,
   ScanSearch,
+  Link2,
+  ScrollText,
 } from "lucide-react";
 import { getEndpointRoleMappingsService } from "~/.server/services/endpoint.role.mappings.service";
 
@@ -43,19 +44,29 @@ export interface SidebarItem {
 
 const sidebarItems: SidebarItem[] = [
   {
-    label: "Dashboard",
+    label: "Analytics Dashboard",
     icon: LayoutDashboard,
     href: "/",
   },
   {
-    label: "Authorization Graph Explorer",
+    label: "RBAC Graph Explorer",
     icon: Network,
     href: "/authorization-graph-explorer",
   },
   {
-    label: "Learn mappings",
+    label: "Request Logs",
+    icon: ScrollText,
+    href: "/request-logs",
+  },
+  {
+    label: "Learn Mappings",
     icon: BookText,
     href: "/learn-mappping",
+  },
+  {
+    label: "Resource Ownerships (IDOR)",
+    icon: Link2,
+    href: "/resource-user-mappings",
   },
   {
     label: "Findings",
@@ -71,11 +82,6 @@ const sidebarItems: SidebarItem[] = [
     label: "Agents",
     icon: Bot,
     href: "/agents",
-  },
-  {
-    label: "Users management",
-    icon: Users,
-    href: "/users-management",
   },
   {
     label: "Settings",

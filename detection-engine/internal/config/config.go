@@ -10,14 +10,15 @@ import (
 
 // Config holds all configuration for the detection engine.
 type Config struct {
-	DatabaseURL            string
-	KafkaBrokers           string
-	KafkaTopicRequestLogs  string
-	KafkaTopicScanRequests string
-	KafkaGroupID           string
-	LearningWindowDays     int
-	ViolationThresholdPct  float64
-	MinimumSampleSize      int
+	DatabaseURL                string
+	KafkaBrokers               string
+	KafkaTopicRequestLogs      string
+	KafkaTopicScanRequests     string
+	KafkaGroupID               string
+	LearningWindowDays         int
+	ViolationThresholdPct      float64
+	MinimumSampleSize          int
+	IDORResourceDominancePercent float64
 }
 
 // Load loads configuration from environment variables.
@@ -26,14 +27,15 @@ func Load() (*Config, error) {
 	_ = godotenv.Load()
 
 	return &Config{
-		DatabaseURL:            getEnv("DATABASE_URL", ""),
-		KafkaBrokers:           getEnv("KAFKA_BROKERS", "localhost:9092"),
-		KafkaTopicRequestLogs:  getEnv("KAFKA_TOPIC_REQUEST_LOGS", "sf-events-access"),
-		KafkaTopicScanRequests: getEnv("KAFKA_TOPIC_SCAN_REQUESTS", "scan-requests"),
-		KafkaGroupID:           getEnv("KAFKA_GROUP_ID", "detection-engine"),
-		LearningWindowDays:     getEnvInt("LEARNING_WINDOW_DAYS", 90),
-		ViolationThresholdPct:  getEnvFloat("VIOLATION_THRESHOLD_PERCENT", 5),
-		MinimumSampleSize:      getEnvInt("MINIMUM_SAMPLE_SIZE", 100),
+		DatabaseURL:                  getEnv("DATABASE_URL", ""),
+		KafkaBrokers:                 getEnv("KAFKA_BROKERS", "localhost:9092"),
+		KafkaTopicRequestLogs:        getEnv("KAFKA_TOPIC_REQUEST_LOGS", "sf-events-access"),
+		KafkaTopicScanRequests:       getEnv("KAFKA_TOPIC_SCAN_REQUESTS", "scan-requests"),
+		KafkaGroupID:                 getEnv("KAFKA_GROUP_ID", "detection-engine"),
+		LearningWindowDays:           getEnvInt("LEARNING_WINDOW_DAYS", 90),
+		ViolationThresholdPct:        getEnvFloat("VIOLATION_THRESHOLD_PERCENT", 5),
+		MinimumSampleSize:            getEnvInt("MINIMUM_SAMPLE_SIZE", 100),
+		IDORResourceDominancePercent: getEnvFloat("IDOR_RESOURCE_DOMINANCE_PERCENT", 95),
 	}, nil
 }
 

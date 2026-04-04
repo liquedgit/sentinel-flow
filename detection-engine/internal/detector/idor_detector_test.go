@@ -26,7 +26,7 @@ func TestIDORDetector_ShouldAlert_NoResourceID(t *testing.T) {
 	}
 }
 
-func TestIDORDetector_ShouldAlert_NoConfirmedOwner(t *testing.T) {
+func TestIDORDetector_ShouldAlert_NoOwnerMapping(t *testing.T) {
 	resourceCache := cache.NewResourceCache()
 	detector := NewIDORDetector(resourceCache)
 
@@ -39,9 +39,8 @@ func TestIDORDetector_ShouldAlert_NoConfirmedOwner(t *testing.T) {
 		Role:           "user",
 	}
 
-	// No owner set, so should not alert
 	if detector.ShouldAlert(log) {
-		t.Error("expected no alert when resource has no confirmed owner")
+		t.Error("expected no alert when resource has no mapping")
 	}
 }
 
@@ -91,13 +90,18 @@ func TestIDORDetector_ShouldAlert_DifferentUserAlerts(t *testing.T) {
 	}
 }
 
-func TestIDORDetector_ShouldAlert_UnconfirmedOwnerNoAlert(t *testing.T) {
+func TestIDORDetector_ShouldAlert_PortalUnconfirmedStillAlerts(t *testing.T) {
 	resourceCache := cache.NewResourceCache()
 	detector := NewIDORDetector(resourceCache)
 
-	// Set up unconfirmed owner (only 2 accesses, threshold is 3)
-	resourceCache.RecordAccess("/account/:id", "123", "user1", 3)
-	resourceCache.RecordAccess("/account/:id", "123", "user1", 3)
+	resourceCache.Refresh([]*repository.UserResourceMapping{
+		{
+			NormalizedPath: "/account/:id",
+			ResourceID:     "123",
+			OwnerUserID:    "user1",
+			Confirmed:      false,
+		},
+	})
 
 	log := &repository.RequestLog{
 		Timestamp:      time.Now(),
@@ -108,8 +112,8 @@ func TestIDORDetector_ShouldAlert_UnconfirmedOwnerNoAlert(t *testing.T) {
 		Role:           "user",
 	}
 
-	if detector.ShouldAlert(log) {
-		t.Error("expected no alert when owner is not yet confirmed")
+	if !detector.ShouldAlert(log) {
+		t.Error("expected alert when mapping exists but portal confirmed is false")
 	}
 }
 
@@ -263,13 +267,12 @@ func TestIDORDetector_CompleteFlow(t *testing.T) {
 	resourceCache.RecordAccess("/account/:id", "123", "user1", 1)
 	resourceCache.RecordAccess("/account/:id", "123", "user1", 1)
 
-	// Verify ownership is confirmed
-	owner, confirmed := resourceCache.GetOwner("/account/:id", "123")
-	if owner != "user1" {
-		t.Fatalf("setup failed: expected owner=user1, got %q", owner)
+	owner, ok := resourceCache.GetOwner("/account/:id", "123")
+	if owner != "user1" || !ok {
+		t.Fatalf("setup failed: expected owner=user1, got %q ok=%v", owner, ok)
 	}
-	if !confirmed {
-		t.Fatal("setup failed: expected confirmed=true")
+	if !resourceCache.HasConfirmedOwner("/account/:id", "123") {
+		t.Fatal("setup failed: expected RecordAccess confirmation")
 	}
 
 	// User2 tries to access User1's resource - should be flagged

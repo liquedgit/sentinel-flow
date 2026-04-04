@@ -28,6 +28,16 @@ export type CheckRequestPayload = {
   accessing_user_id?: string;
 };
 
+/** Matches detection-engine `ScanRequestMessage` (JSON field names). */
+export type ScanRequestPayload = {
+  request_id: string;
+  learning_window_days?: number;
+  violation_threshold_percent?: number;
+  minimum_sample_size?: number;
+  /** Min share (0–100) of accesses by top user vs total to learn a resource mapping. */
+  resource_dominance_percent?: number;
+};
+
 
 
 export async function produceAccessEvent(
@@ -63,6 +73,26 @@ export async function produceCheckRequest(
       topic: kafkaConfig.topicCheckRequests,
       messages: [
         {
+          value: JSON.stringify(payload),
+        },
+      ],
+    });
+  } finally {
+    await prod.disconnect();
+  }
+}
+
+export async function produceScanRequest(
+  payload: ScanRequestPayload
+): Promise<void> {
+  const prod = getProducer();
+  await prod.connect();
+  try {
+    await prod.send({
+      topic: kafkaConfig.topicScanRequests,
+      messages: [
+        {
+          key: payload.request_id,
           value: JSON.stringify(payload),
         },
       ],

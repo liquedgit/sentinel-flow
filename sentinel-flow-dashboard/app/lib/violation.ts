@@ -13,3 +13,19 @@ export function getViolationTypeLabel(violationType?: string | null): string {
       return "Unknown Violation";
   }
 }
+
+/** User-facing category: vertical_idor ≈ RBAC bypass, horizontal_idor ≈ IDOR. */
+export type ViolationCategory = "RBAC" | "IDOR" | "Unknown";
+
+export function getViolationCategory(
+  violationType?: string | null
+): ViolationCategory {
+  switch (violationType) {
+    case ViolationType.VerticalIDOR:
+      return "RBAC";
+    case ViolationType.HorizontalIDOR:
+      return "IDOR";
+    default:
+      return "Unknown";
+  }
+}

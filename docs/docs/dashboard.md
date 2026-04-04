@@ -10,7 +10,7 @@ The **Sentinel Flow Dashboard** is the web app and API surface for operators and
 
 - **Agents** — Issue tokens, receive heartbeats, and ingest access events at `POST /api/agents/events`. The server forwards eligible events to Kafka for the detection pipeline (see [Agent](/docs/agent)).
 - **Findings** — Review what the detection engine reported (IDOR and related issues) with enough context to triage and fix.
-- **Learn mapping** — Curate **endpoint ↔ role** expectations and **resource ownership** context so learning and checks align with how your API is supposed to behave.
+- **Learn mapping** — Queue RBAC + IDOR batch learning, upload logs, and **review or confirm** learned resource ownership rows (portal confirmation is for operators only; detection does not depend on it).
 
 ## Kafka producers (from the Dashboard)
 
@@ -24,7 +24,7 @@ The Dashboard runs a Kafka producer for orchestration and deep checks:
   | `learning_window_days`        | number?  | Optional learning window                   |
   | `violation_threshold_percent` | number?  | Optional threshold for violations          |
   | `minimum_sample_size`         | number?  | Optional minimum samples before decisions  |
-  | `confirmation_threshold`      | number?  | Optional confirmation threshold            |
+  | `resource_dominance_percent`  | number?  | Optional IDOR dominant share (%) per resource |
 
 - **AI / check requests** — A separate topic (default **`sf-check-requests`**) carries **`CheckRequestPayload`** for violation-specific checks (e.g. vertical/horizontal IDOR hints with `method`, `endpoint`, roles, and optional resource/user ids). Use this when you need the pipeline to run a targeted check rather than a full scan.
 

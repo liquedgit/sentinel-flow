@@ -10,13 +10,13 @@ import (
 func TestResourceCache_GetOwner_NotFound(t *testing.T) {
 	cache := NewResourceCache()
 
-	owner, confirmed := cache.GetOwner("/account/:id", "123")
+	owner, ok := cache.GetOwner("/account/:id", "123")
 
 	if owner != "" {
 		t.Errorf("expected empty owner, got %q", owner)
 	}
-	if confirmed {
-		t.Error("expected confirmed=false, got true")
+	if ok {
+		t.Error("expected ok=false when no mapping")
 	}
 }
 
@@ -29,13 +29,15 @@ func TestResourceCache_RecordAccess_FirstAccess(t *testing.T) {
 		t.Error("expected not confirmed after first access, got true")
 	}
 
-	// Verify owner was set
-	owner, isConfirmed := cache.GetOwner("/account/:id", "123")
+	owner, ok := cache.GetOwner("/account/:id", "123")
 	if owner != "user1" {
 		t.Errorf("expected owner=user1, got %q", owner)
 	}
-	if isConfirmed {
-		t.Error("expected confirmed=false, got true")
+	if !ok {
+		t.Error("expected mapping to exist")
+	}
+	if cache.HasConfirmedOwner("/account/:id", "123") {
+		t.Error("expected portal confirmed=false after first access")
 	}
 }
 
@@ -75,9 +77,8 @@ func TestResourceCache_RecordAccess_ConfirmsAfterThreshold(t *testing.T) {
 				cache.RecordAccess("/account/:id", "123", "user1", tt.threshold)
 			}
 
-			_, confirmed := cache.GetOwner("/account/:id", "123")
-			if confirmed != tt.expectConfirmed {
-				t.Errorf("expected confirmed=%v, got %v", tt.expectConfirmed, confirmed)
+			if cache.HasConfirmedOwner("/account/:id", "123") != tt.expectConfirmed {
+				t.Errorf("expected HasConfirmedOwner=%v", tt.expectConfirmed)
 			}
 		})
 	}
@@ -91,24 +92,22 @@ func TestResourceCache_RecordAccess_OwnerIsSticky(t *testing.T) {
 	cache.RecordAccess("/account/:id", "123", "user1", 3)
 	cache.RecordAccess("/account/:id", "123", "user1", 3)
 
-	// Verify owner is user1 and confirmed
-	owner, confirmed := cache.GetOwner("/account/:id", "123")
+	owner, ok := cache.GetOwner("/account/:id", "123")
 	if owner != "user1" {
 		t.Errorf("expected owner=user1, got %q", owner)
 	}
-	if !confirmed {
-		t.Error("expected confirmed=true after 3 accesses")
+	if !ok || !cache.HasConfirmedOwner("/account/:id", "123") {
+		t.Error("expected RecordAccess threshold confirmation after 3 accesses")
 	}
 
-	// Different user tries to access - ownership should not change
 	cache.RecordAccess("/account/:id", "123", "user2", 3)
 
-	owner, confirmed = cache.GetOwner("/account/:id", "123")
+	owner, ok = cache.GetOwner("/account/:id", "123")
 	if owner != "user1" {
 		t.Errorf("expected owner to still be user1, got %q", owner)
 	}
-	if !confirmed {
-		t.Error("expected confirmed=true")
+	if !ok || !cache.HasConfirmedOwner("/account/:id", "123") {
+		t.Error("expected ownership to remain confirmed")
 	}
 }
 
@@ -152,22 +151,20 @@ func TestResourceCache_Refresh(t *testing.T) {
 
 	cache.Refresh(mappings)
 
-	// Check first mapping - confirmed
-	owner, confirmed := cache.GetOwner("/account/:id", "123")
-	if owner != "user1" {
-		t.Errorf("expected owner=user1, got %q", owner)
+	owner, ok := cache.GetOwner("/account/:id", "123")
+	if owner != "user1" || !ok {
+		t.Errorf("expected owner=user1, ok=true, got %q %v", owner, ok)
 	}
-	if !confirmed {
-		t.Error("expected confirmed=true")
+	if !cache.HasConfirmedOwner("/account/:id", "123") {
+		t.Error("expected portal confirmed on first mapping")
 	}
 
-	// Check second mapping - not confirmed
-	owner, confirmed = cache.GetOwner("/posts/:id", "456")
-	if owner != "user2" {
+	owner, ok = cache.GetOwner("/posts/:id", "456")
+	if owner != "user2" || !ok {
 		t.Errorf("expected owner=user2, got %q", owner)
 	}
-	if confirmed {
-		t.Error("expected confirmed=false")
+	if cache.HasConfirmedOwner("/posts/:id", "456") {
+		t.Error("expected second mapping not portal-confirmed")
 	}
 }
 
@@ -219,14 +216,12 @@ func TestResourceCache_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	// Verify final state
-	owner, confirmed := cache.GetOwner("/resource/:id", "abc")
-	if owner != "user1" {
-		t.Errorf("expected owner=user1, got %q", owner)
+	owner, ok := cache.GetOwner("/resource/:id", "abc")
+	if owner != "user1" || !ok {
+		t.Errorf("expected owner=user1, got %q ok=%v", owner, ok)
 	}
-	// With 100 accesses and threshold of 3, should be confirmed
-	if !confirmed {
-		t.Error("expected confirmed=true after many concurrent accesses")
+	if !cache.HasConfirmedOwner("/resource/:id", "abc") {
+		t.Error("expected RecordAccess confirmation after many concurrent accesses")
 	}
 }
 

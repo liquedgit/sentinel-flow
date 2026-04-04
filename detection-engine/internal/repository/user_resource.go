@@ -28,7 +28,7 @@ func (r *UserResourceRepository) UpsertMapping(ctx context.Context, m *UserResou
 			owner_user_id = EXCLUDED.owner_user_id,
 			access_count = EXCLUDED.access_count,
 			last_access_time = EXCLUDED.last_access_time,
-			confirmed = EXCLUDED.confirmed,
+			confirmed = user_resource_mappings.confirmed,
 			updated_at = NOW()
 	`, m.NormalizedPath, m.ResourceID, m.OwnerUserID, m.FirstAccessTime,
 		m.LastAccessTime, m.AccessCount, m.Confirmed)
@@ -52,7 +52,7 @@ func (r *UserResourceRepository) UpsertMappings(ctx context.Context, mappings []
 				owner_user_id = EXCLUDED.owner_user_id,
 				access_count = EXCLUDED.access_count,
 				last_access_time = EXCLUDED.last_access_time,
-				confirmed = EXCLUDED.confirmed,
+				confirmed = user_resource_mappings.confirmed,
 				updated_at = NOW()
 		`, m.NormalizedPath, m.ResourceID, m.OwnerUserID, m.FirstAccessTime,
 			m.LastAccessTime, m.AccessCount, m.Confirmed)

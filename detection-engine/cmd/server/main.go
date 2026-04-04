@@ -59,20 +59,22 @@ func main() {
 	// Detectors
 	rbacDetector := detector.New(mappingCache)
 	resourceCache := cache.NewResourceCache()
-	// Load confirmed resource mappings into cache
-	confirmedMappings, err := userResourceRepo.LoadConfirmedMappings(ctx)
+	resourceMappings, err := userResourceRepo.LoadAllMappings(ctx)
 	if err != nil {
 		slog.Warn("failed to load resource mappings", "error", err)
-		// Continue anyway - cache will be empty
 	} else {
-		resourceCache.Refresh(confirmedMappings)
-		slog.Info("loaded resource mappings", "count", len(confirmedMappings))
+		resourceCache.Refresh(resourceMappings)
+		slog.Info("loaded resource mappings", "count", len(resourceMappings))
 	}
 	idorDetector := detector.NewIDORDetector(resourceCache)
 	compositeDetector := detector.NewCompositeDetector(rbacDetector, idorDetector)
 
-	// Scanner
+	// Scanners
 	scan := scanner.New(pool, mappingRepo, mappingCache)
+	idorParams := scanner.DefaultIDORScanParams()
+	idorParams.LearningWindowDays = cfg.LearningWindowDays
+	idorParams.ResourceDominancePercent = cfg.IDORResourceDominancePercent
+	idorScan := scanner.NewIDORScanner(pool, resourceCache, userResourceRepo)
 
 	// Kafka readers
 	brokers := cfg.KafkaBrokersList()
@@ -100,7 +102,7 @@ func main() {
 		LearningWindowDays:    cfg.LearningWindowDays,
 		ViolationThresholdPct: cfg.ViolationThresholdPct,
 		MinimumSampleSize:     cfg.MinimumSampleSize,
-	})
+	}, idorScan, idorParams)
 
 	// Run consumers in goroutines
 	errCh := make(chan error, 2)

@@ -12,8 +12,40 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import type { ViolationWithRequestLogAndAIChecker } from "~/.server/services/violation.service";
+import { Badge } from "~/components/ui/badge";
+import { cn } from "~/lib/utils";
+import {
+  getViolationCategory,
+  type ViolationCategory,
+} from "~/lib/violation";
 import type { ViolationForSheet } from "~/components/detail.findings.sheet";
+
+function violationCategoryBadgeClass(category: ViolationCategory) {
+  switch (category) {
+    case "IDOR":
+      return "border-amber-500/50 bg-amber-500/15 text-amber-100";
+    case "RBAC":
+      return "border-sky-500/50 bg-sky-500/15 text-sky-100";
+    default:
+      return "border-white/25 bg-white/5 text-gray-300";
+  }
+}
+
+function findingStatusBadgeClass(status: string) {
+  const s = status.toLowerCase();
+  switch (s) {
+    case "new":
+      return "border-amber-400/50 bg-amber-400/10 text-amber-100";
+    case "resolved":
+    case "acknowledged":
+      return "border-emerald-500/50 bg-emerald-500/10 text-emerald-100";
+    case "false_positive":
+    case "ignored":
+      return "border-white/20 bg-white/5 text-gray-300";
+    default:
+      return "border-violet-400/40 bg-violet-500/10 text-violet-100";
+  }
+}
 
 export async function action({ request }: { request: Request }) {
   if (request.method !== "POST") {
@@ -86,6 +118,7 @@ export default function FindingsPage() {
             <TableRow className="hover:bg-active-primary-foreground">
               <TableHead>ID</TableHead>
               <TableHead>Path</TableHead>
+              <TableHead>Violation type</TableHead>
               <TableHead>User ID</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Status</TableHead>
@@ -105,9 +138,43 @@ export default function FindingsPage() {
               >
                 <TableCell>{violation.id}</TableCell>
                 <TableCell>{violation.normalizedPath}</TableCell>
+                <TableCell>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "font-medium",
+                      violationCategoryBadgeClass(
+                        getViolationCategory(violation.violationType)
+                      )
+                    )}
+                  >
+                    {getViolationCategory(violation.violationType)}
+                  </Badge>
+                </TableCell>
                 <TableCell>{violation.userId}</TableCell>
-                <TableCell>{violation.role}</TableCell>
-                <TableCell>{violation.status}</TableCell>
+                <TableCell>
+                  {violation.role ? (
+                    <Badge
+                      variant="outline"
+                      className="border-white/25 bg-white/5 text-gray-100 font-normal"
+                    >
+                      {violation.role}
+                    </Badge>
+                  ) : (
+                    "—"
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "font-medium capitalize",
+                      findingStatusBadgeClass(violation.status)
+                    )}
+                  >
+                    {violation.status.replace(/_/g, " ")}
+                  </Badge>
+                </TableCell>
                 <TableCell>{violation.resolvedById}</TableCell>
                 <TableCell>{violation.resolvedAt?.toISOString()}</TableCell>
                 <TableCell>{violation.createdAt.toISOString()}</TableCell>

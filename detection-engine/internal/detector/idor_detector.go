@@ -17,24 +17,19 @@ func NewIDORDetector(resourceCache *cache.ResourceCache) *IDORDetector {
 	}
 }
 
-// ShouldAlert returns true if this is a confirmed IDOR violation.
-// An IDOR violation occurs when:
-// 1. The request contains a resource ID (:id or :uuid)
-// 2. The resource has a confirmed owner in the cache
-// 3. The requesting user is NOT the owner
+// ShouldAlert returns true when a learned resource owner exists and the requester is someone else.
+// Operator confirmation (user_resource_mappings.confirmed) does not gate alerting.
 func (d *IDORDetector) ShouldAlert(log *repository.RequestLog) bool {
 	resourceID := d.getResourceID(log)
 	if resourceID == "" {
 		return false // No resource ID, skip IDOR check
 	}
 
-	// Check if this resource has a confirmed owner
-	owner, confirmed := d.resourceCache.GetOwner(log.NormalizedPath, resourceID)
-	if !confirmed {
-		return false // No confirmed owner yet, still in learning phase
+	owner, ok := d.resourceCache.GetOwner(log.NormalizedPath, resourceID)
+	if !ok {
+		return false // No ownership mapping for this resource
 	}
 
-	// Violation: different user accessing owned resource
 	return owner != log.UserID
 }
 

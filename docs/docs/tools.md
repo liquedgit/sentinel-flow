@@ -55,7 +55,7 @@ PostgreSQL stores:
 
 - **Request logs** — Raw access events (configurable retention)
 - **Endpoint mappings** — Learned and manual role-to-endpoint rules (RBAC)
-- **`user_resource_mappings`** — Learned resource ownership per normalized path and resource id (horizontal IDOR); includes `confirmed` and access metadata
+- **`user_resource_mappings`** — Learned resource ownership per normalized path and resource id (horizontal IDOR). Rows are created when the dominant user’s share of traffic meets the configured threshold; `confirmed` is operator-only (portal) and does not gate detection.
 - **Violations** — Detected access control anomalies, including `violation_type` (`vertical_idor` / `horizontal_idor`), `resource_id`, and `expected_users` where applicable
 - **Audit logs** — Configuration changes and false positive handling
 
